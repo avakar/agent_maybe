@@ -2,8 +2,15 @@
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <ClInclude Include="json.hpp" />
+    <ClInclude Include="string_view.hpp" />
+    <ClInclude Include="http_server.hpp" />
+    <ClInclude Include="stream.hpp" />
+    <ClInclude Include="utils.hpp" />
+    <ClInclude Include="win32_socket.hpp" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="http_server.cpp" />
+    <ClCompile Include="win32_socket.cpp" />
   </ItemGroup>
 </Project>

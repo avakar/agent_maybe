@@ -1,97 +1,136 @@
+#include "win32_socket.hpp"
+#include "http_server.hpp"
+
 #include "json.hpp"
-using json = nlohmann::json;
+using nlohmann::json;
 
-#include <string>
-#include <vector>
+using std::move;
+using std::string_view;
 
-struct buffer
+struct tarfile
 {
-};
-
-template <typename T>
-struct ichan
-{
-	virtual T recv() = 0;
-};
-
-using istream = ichan<buffer>;
-
-struct header
-{
-	std::string key;
-	std::string value;
-};
-
-struct response
-{
-	uint16_t status_code;
-	std::string status_text;
-	std::vector<header> headers;
-	std::shared_ptr<istream> body;
-
-	response(std::shared_ptr<istream> body, std::initializer_list<header> headers, uint16_t status_code = 200)
-		: status_code(status_code), headers(headers), body(body)
+	explicit tarfile(ostream & out)
+		: out_(out)
 	{
 	}
 
-	response(std::string body, std::initializer_list<header> headers, uint16_t status_code = 200)
-		: status_code(status_code), headers(headers)
+	void add(string_view name, uint64_t size, istream & file)
 	{
 	}
+
+private:
+	ostream & out_;
 };
 
-struct request
+struct tar_stream
+	: istream
 {
-	std::string method;
-	std::string path;
-	std::vector<header> headers;
-	std::shared_ptr<istream> body;
+	explicit tar_stream(std::string workspace)
+		: workspace_(workspace)
+	{
+	}
+
+	size_t read(char * buf, size_t len) override
+	{
+	}
+
+private:
+	std::string workspace_;
 };
 
-response get_stats()
+struct app
 {
-	std::string id = "test";
+	explicit app(std::string workspace, std::string image_name)
+		: status_(status_t::clean), workspace_(workspace), image_name_(move(image_name)), stopping_(false)
+	{
+	}
 
-	json obj = {
-		{ "agent_id", id },
+	response get_image(request const & req)
+	{
+		string_view status;
+		if (stopping_)
+		{
+			status = "stopping";
+		}
+		else
+		{
+			switch (status_)
+			{
+			case status_t::clean:
+				status = "clean";
+				break;
+			case status_t::dirty:
+				status = "dirty";
+				break;
+			case status_t::unpure:
+				status = "unpure";
+				break;
+			}
+		}
+
+		json r = {
+			{ "status", std::string(status) },
+			{ "name", image_name_ },
 		};
 
-	return { obj.dump(), { { "content-type", "application/json"} } };
-}
+		return response(r.dump(), { { "content-type", "application/json" } });
+	}
 
-#include <winsock2.h>
-#include <windows.h>
+	response stop_image(request const & req)
+	{
+		if (!stopping_)
+		{
+			// TODO: exec stop
+			stopping_ = true;
+		}
+		return{ 303, { { "location", "/image" } } };
+	}
 
-void client_handler(SOCKET sock)
-{
-	char buf[4096];
-	int r = recv(sock, buf, sizeof buf, 0);
+	response get_tar(request const & req)
+	{
+		return{ std::make_shared<tar_stream>(workspace_), { { "content-type", "application/x-tar" } } };
+	}
 
-}
+	response route(request const & req)
+	{
+		if (req.path == "/image" && req.method == "GET")
+		{
+			return this->get_image(req);
+		}
+		else if (req.path == "/image/stop" && req.method == "POST")
+		{
+			return this->stop_image(req);
+		}
+		else if (req.path == "/tar" && req.method == "GET")
+		{
+			return this->stop_image(req);
+		}
+		else
+		{
+			return http_abort(404);
+		}
+	}
 
-#include <thread>
+	response operator()(request req)
+	{
+		if (req.method == "HEAD")
+			req.method = "GET";
+		return this->route(req);
+	}
+
+private:
+	enum class status_t { clean, dirty, unpure };
+
+	status_t status_;
+	std::string workspace_;
+	std::string image_name_;
+	bool stopping_;
+};
 
 int main()
 {
-	WSADATA wsd;
-	WSAStartup(MAKEWORD(2, 2), &wsd);
-
-	SOCKET listen_sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-
-	sockaddr_in bind_addr = {};
-	bind_addr.sin_family = AF_INET;
-	bind_addr.sin_port = htons(8080);
-	bind(listen_sock, reinterpret_cast<sockaddr const *>(&bind_addr), sizeof bind_addr);
-
-	listen(listen_sock, SOMAXCONN);
-
-	for (;;)
-	{
-		SOCKET client_sock = accept(listen_sock, nullptr, nullptr);
-		std::thread thr([client_sock] {
-			client_handler(client_sock);
-		});
-
-		thr.detach();
-	}
+	app a("c:\\devel\\checkouts\\remote_test_agent\\ws", "win10-wbam");
+	tcp_listen(8080, [&a](istream & in, ostream & out) {
+		http_server(in, out, a);
+	});
 }
