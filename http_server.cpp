@@ -88,6 +88,8 @@ private:
 	uint64_t limit_;
 };
 
+
+
 }
 
 void http_server(istream & in, ostream & out, std::function<response(request &&)> const & fn)
@@ -196,6 +198,8 @@ void http_server(istream & in, ostream & out, std::function<response(request &&)
 		response resp = fn(std::move(req));
 		if (resp.content_length != -1)
 			resp.headers.push_back({ "content-length", std::to_string(resp.content_length) });
+		else
+			resp.headers.push_back({ "transfer-encoding", "chunked" });
 
 		std::string status_code = std::to_string(resp.status_code);
 		if (resp.status_text.empty())
@@ -240,6 +244,34 @@ void http_server(istream & in, ostream & out, std::function<response(request &&)
 				out.write_all(write_buf, chunk);
 
 				resp.content_length -= chunk;
+			}
+		}
+		else
+		{
+			for (;;)
+			{
+				size_t chunk = resp.body->read(write_buf, sizeof write_buf);
+				if (chunk == 0)
+				{
+					out.write_all("0\r\n\r\n", 5);
+					break;
+				}
+
+				char chunk_header[16];
+				size_t chunk_header_len = 0;
+				for (size_t tmp = chunk; tmp; tmp >>= 4)
+				{
+					static char const digits[] = "0123456789abcdef";
+					chunk_header[chunk_header_len++] = digits[tmp & 0xf];
+				}
+
+				std::reverse(chunk_header, chunk_header + chunk_header_len);
+
+				out.write_all(chunk_header, chunk_header_len);
+				out.write_all("\r\n", 2);
+
+				out.write_all(write_buf, chunk);
+				out.write_all("\r\n", 2);
 			}
 		}
 

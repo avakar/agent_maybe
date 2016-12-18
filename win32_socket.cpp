@@ -20,12 +20,16 @@ struct win32_socket final
 
 	size_t read(char * buf, size_t len) override
 	{
-		return ::recv(m_socket, buf, len, 0);
+		if (len > MAXINT)
+			len = MAXINT;
+		return ::recv(m_socket, buf, (int)len, 0);
 	}
 
 	size_t write(char const * buf, size_t len) override
 	{
-		return ::send(m_socket, buf, len, 0);
+		if (len > MAXINT)
+			len = MAXINT;
+		return ::send(m_socket, buf, (int)len, 0);
 	}
 
 private:
