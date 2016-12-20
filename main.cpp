@@ -2,113 +2,13 @@
 #include "http_server.hpp"
 #include "file.hpp"
 #include "chan.hpp"
+#include "tar.hpp"
 
 #include "json.hpp"
 using nlohmann::json;
 
 using std::move;
 using std::string_view;
-
-static void write_oct(char * buf, size_t len, uint64_t num)
-{
-	buf[--len] = ' ';
-
-	while (len)
-	{
-		buf[--len] = '0' + (num & 0x7);
-		num >>= 3;
-	}
-}
-
-static char const g_empty_two_blocks[1024] = {};
-
-struct tarfile
-{
-	explicit tarfile(ostream & out)
-		: out_(out)
-	{
-	}
-
-	void add(string_view name, uint64_t size, uint32_t mtime, istream & file)
-	{
-		char buf[16*1024] = {};
-
-		if (name.size() > 100)
-			throw std::runtime_error("tar name too long");
-
-		// name
-		memcpy(buf, name.data(), name.size());
-
-		// mode
-		memcpy(buf + 100, "000666 ", 7);
-
-		// uid, gid
-		memcpy(buf + 108, "000000 ", 7);
-		memcpy(buf + 116, "000000 ", 7);
-
-		// size
-		write_oct(buf + 124, 12, size);
-
-		// mtime
-		write_oct(buf + 136, 12, mtime);
-
-		// typeflag
-		buf[156] = '0';
-
-		// magic+version
-		memcpy(buf + 257, "ustar\x0000", 8);
-
-		// chksum
-		write_oct(buf + 148, 8, std::accumulate(buf, buf + 512, (size_t)(0x20 * 8)));
-
-		out_.write_all(buf, 512);
-
-		size_t padding = 512 - (size % 512);
-		if (padding == 512)
-			padding = 0;
-
-		while (size)
-		{
-			size_t chunk = (std::min)(size, sizeof buf);
-			size_t r = file.read(buf, chunk);
-			assert(r != 0);
-
-			size -= chunk;
-			out_.write_all(buf, chunk);
-		}
-
-		if (padding)
-		{
-			memset(buf, 0, padding);
-			out_.write_all(buf, padding);
-		}
-	}
-
-	void close()
-	{
-		out_.write_all(g_empty_two_blocks, sizeof g_empty_two_blocks);
-	}
-
-private:
-	ostream & out_;
-};
-
-struct tar_stream
-	: istream
-{
-	explicit tar_stream(std::string workspace)
-		: workspace_(workspace)
-	{
-	}
-
-	size_t read(char * buf, size_t len) override
-	{
-		return 0;
-	}
-
-private:
-	std::string workspace_;
-};
 
 struct app
 {
@@ -164,7 +64,7 @@ struct app
 		{
 			app & a;
 			chan ch;
-			tarfile tf;
+			tarfile_writer tf;
 
 			ctx(app & a)
 				: a(a), tf(ch)

@@ -152,6 +152,7 @@
     <ClInclude Include="json.hpp" />
     <ClInclude Include="stream.hpp" />
     <ClInclude Include="string_view.hpp" />
+    <ClInclude Include="tar.hpp" />
     <ClInclude Include="utils.hpp" />
     <ClInclude Include="win32_error.hpp" />
     <ClInclude Include="win32_socket.hpp" />
@@ -159,6 +160,7 @@
   <ItemGroup>
     <ClCompile Include="http_server.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="tar.cpp" />
     <ClCompile Include="win32_chan.cpp" />
     <ClCompile Include="win32_file.cpp" />
     <ClCompile Include="win32_socket.cpp" />

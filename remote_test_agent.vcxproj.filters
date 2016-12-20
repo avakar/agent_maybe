@@ -10,6 +10,7 @@
     <ClInclude Include="file.hpp" />
     <ClInclude Include="chan.hpp" />
     <ClInclude Include="win32_error.hpp" />
+    <ClInclude Include="tar.hpp" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp" />
@@ -17,5 +18,6 @@
     <ClCompile Include="win32_socket.cpp" />
     <ClCompile Include="win32_file.cpp" />
     <ClCompile Include="win32_chan.cpp" />
+    <ClCompile Include="tar.cpp" />
   </ItemGroup>
 </Project>
