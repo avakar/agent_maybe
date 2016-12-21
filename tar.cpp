@@ -60,7 +60,9 @@ void tarfile_writer::add(std::string_view name, uint64_t size, uint64_t mtime, i
 
 	while (size)
 	{
-		size_t chunk = (std::min)(size, sizeof buf);
+		size_t chunk = sizeof buf;
+		if (chunk > size)
+			chunk = (size_t)size;
 		size_t r = file.read(buf, chunk);
 		assert(r != 0);
 
