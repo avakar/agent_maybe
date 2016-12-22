@@ -139,137 +139,50 @@ static bool load_num(uint64_t & num, std::string_view str)
 void http_server(istream & in, ostream & out, std::function<response(request &&)> const & fn)
 {
 	char header_buf[64 * 1024];
+	char write_buf[64 * 1024];
+	char const * cur = header_buf;
 	char * last = header_buf;
 	char const * const end = header_buf + sizeof header_buf;
 
-	for (;;)
-	{
-		char const * cur = header_buf;
-
-		auto preload = [&]() {
-			if (cur == last)
-			{
-				if (last == end)
-					return false;
-
-				size_t r = in.read(last, end - last);
-				assert(r <= size_t(end - last));
-				last += r;
-
-				if (r == 0)
-					return false;
-			}
-
-			return true;
-		};
-
-		auto consume = [&](char ch) {
-			if (!preload() || *cur != ch)
+	auto preload = [&]() {
+		if (cur == last)
+		{
+			if (last == end)
 				return false;
-			++cur;
-			return true;
-		};
 
-		auto parse_until = [&](std::string_view & r, char sep) {
-			auto first = cur;
-			while (preload() && *cur != sep)
-				++cur;
-			if (first == last)
+			size_t r = in.read(last, end - last);
+			assert(r <= size_t(end - last));
+			last += r;
+
+			if (r == 0)
 				return false;
-			r = std::string_view(first, cur);
-			++cur;
-			return true;
-		};
+		}
 
-		request req;
-		std::string_view version;
+		return true;
+	};
 
-		auto parse_headers = [&] {
-			if (
-				!parse_until(req.method, ' ')
-				|| !parse_until(req.path, ' ')
-				|| !parse_until(version, '\r')
-				|| !consume('\n'))
-			{
-				return false;
-			}
-
-			std::string_view line;
-			while (parse_until(line, '\r') && consume('\n'))
-			{
-				if (line.empty())
-					return true;
-
-				size_t colon_pos = line.find(':');
-				if (colon_pos == std::string_view::npos)
-					return false;
-
-				header_view hv;
-				hv.name = line.substr(0, colon_pos);
-				hv.value = strip(line.substr(colon_pos + 1));
-				req.headers.push_back(hv);
-			}
-
+	auto consume = [&](char ch) {
+		if (!preload() || *cur != ch)
 			return false;
-		};
+		++cur;
+		return true;
+	};
 
-		if (!parse_headers())
-		{
-			if (last == header_buf)
-				return;
+	auto parse_until = [&](std::string_view & r, char sep) {
+		auto first = cur;
+		while (preload() && *cur != sep)
+			++cur;
+		if (first == last)
+			return false;
+		r = std::string_view(first, cur);
+		++cur;
+		return true;
+	};
 
-			// Send 400 Bad Request or 413 Request Entity Too Large
-		}
+	auto send_response = [&](response resp) {
+		if (resp.body == nullptr)
+			resp.content_length = 0;
 
-		std::sort(req.headers.begin(), req.headers.end());
-
-		std::string_view prebuf(cur, last);
-
-		bool has_body =
-			req.method == std::string_view("POST")
-			|| req.method == "PUT";
-
-		std::shared_ptr<istream> body;
-
-		bool malformed = false;
-		if (!has_body)
-		{
-			body = std::make_shared<fixed_req_stream>(prebuf, in, 0);
-		}
-		else
-		{
-			if (std::string_view const * cl = get_single(req.headers, "content-length"))
-			{
-				uint64_t content_length;
-				if (load_num(content_length, *cl))
-					body = std::make_shared<fixed_req_stream>(prebuf, in, content_length);
-			}
-
-			if (!body)
-			{
-				bool chunked = false;
-				for (std::string_view tok: enum_headers(req.headers, "transfer-encoding"))
-				{
-					if (chunked)
-						malformed = true;
-					if (tok == "chunked")
-						chunked = true;
-					else
-						malformed = true;
-				}
-
-				if (chunked)
-					body = std::make_shared<chunked_req_stream>(prebuf, in);
-				else
-					body = std::make_shared<fixed_req_stream>(prebuf, in, 0);
-			}
-		}
-
-		req.body = body;
-
-		std::cerr << req.path << std::flush;
-
-		response resp = fn(std::move(req));
 		if (resp.content_length != -1)
 			resp.headers.push_back({ "content-length", std::to_string(resp.content_length) });
 		else
@@ -305,7 +218,6 @@ void http_server(istream & in, ostream & out, std::function<response(request &&)
 		}
 		out.write_all("\r\n", 2);
 
-		char write_buf[64 * 1024];
 		if (resp.content_length != -1)
 		{
 			while (resp.content_length)
@@ -348,6 +260,111 @@ void http_server(istream & in, ostream & out, std::function<response(request &&)
 				out.write_all("\r\n", 2);
 			}
 		}
+	};
+
+	for (;;)
+	{
+		cur = header_buf;
+
+		request req;
+
+		auto parse_headers = [&] {
+			std::string_view version;
+			if (
+				!parse_until(req.method, ' ')
+				|| !parse_until(req.path, ' ')
+				|| !parse_until(version, '\r')
+				|| !consume('\n'))
+			{
+				return false;
+			}
+
+			if (version != "HTTP/1.1")
+				return false;
+
+			std::string_view line;
+			while (parse_until(line, '\r') && consume('\n'))
+			{
+				if (line.empty())
+					return true;
+
+				size_t colon_pos = line.find(':');
+				if (colon_pos == std::string_view::npos)
+					return false;
+
+				header_view hv;
+				hv.name = line.substr(0, colon_pos);
+				hv.value = strip(line.substr(colon_pos + 1));
+				req.headers.push_back(hv);
+			}
+
+			return false;
+		};
+
+		if (!parse_headers())
+		{
+			if (last != header_buf)
+			{
+				if (last == header_buf + sizeof header_buf)
+					send_response(413);
+				else
+					send_response(400);
+			}
+
+			return;
+		}
+
+		std::sort(req.headers.begin(), req.headers.end());
+
+		std::string_view prebuf(cur, last);
+
+		bool has_body =
+			req.method == std::string_view("POST")
+			|| req.method == "PUT";
+
+		std::shared_ptr<istream> body;
+
+		if (!has_body)
+		{
+			body = std::make_shared<fixed_req_stream>(prebuf, in, 0);
+		}
+		else
+		{
+			if (std::string_view const * cl = get_single(req.headers, "content-length"))
+			{
+				uint64_t content_length;
+				if (load_num(content_length, *cl))
+					body = std::make_shared<fixed_req_stream>(prebuf, in, content_length);
+			}
+
+			if (!body)
+			{
+				bool chunked = false;
+				for (std::string_view tok: enum_headers(req.headers, "transfer-encoding"))
+				{
+					if (chunked || tok != "chunked")
+					{
+						send_response(400);
+						return;
+					}
+
+					chunked = true;
+				}
+
+				if (chunked)
+					body = std::make_shared<chunked_req_stream>(prebuf, in);
+				else
+					body = std::make_shared<fixed_req_stream>(prebuf, in, 0);
+			}
+		}
+
+		req.body = body;
+
+		std::cerr << req.path << std::flush;
+
+		response resp = fn(std::move(req));
+
+		send_response(std::move(resp));
 
 		for (;;)
 		{

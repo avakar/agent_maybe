@@ -151,9 +151,11 @@
     <ClInclude Include="file.hpp" />
     <ClInclude Include="http_server.hpp" />
     <ClInclude Include="json.hpp" />
+    <ClInclude Include="process.hpp" />
     <ClInclude Include="stream.hpp" />
     <ClInclude Include="string_view.hpp" />
     <ClInclude Include="tar.hpp" />
+    <ClInclude Include="utf.hpp" />
     <ClInclude Include="utils.hpp" />
     <ClInclude Include="win32_error.hpp" />
     <ClInclude Include="win32_socket.hpp" />
@@ -164,9 +166,11 @@
     <ClCompile Include="main.cpp" />
     <ClCompile Include="stream.cpp" />
     <ClCompile Include="tar.cpp" />
+    <ClCompile Include="utf.cpp" />
     <ClCompile Include="utils.cpp" />
     <ClCompile Include="win32_chan.cpp" />
     <ClCompile Include="win32_file.cpp" />
+    <ClCompile Include="win32_process.cpp" />
     <ClCompile Include="win32_socket.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

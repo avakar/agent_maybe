@@ -4,6 +4,7 @@
 #include "chan.hpp"
 #include "tar.hpp"
 #include "argparse.hpp"
+#include "process.hpp"
 
 #include "json.hpp"
 using nlohmann::json;
@@ -13,8 +14,9 @@ using std::string_view;
 
 struct app
 {
-	explicit app(std::string workspace, std::string image_name)
-		: status_(status_t::clean), workspace_(workspace), image_name_(move(image_name)), stopping_(false)
+	explicit app(std::string workspace, std::string image_name, std::string stop_cmd)
+		: status_(status_t::clean), workspace_(move(workspace)), image_name_(move(image_name)),
+		stop_cmd_(move(stop_cmd)), error_(0), stopping_(false)
 	{
 	}
 
@@ -51,10 +53,20 @@ struct app
 
 	response stop_image(request const & req)
 	{
+		if (stop_cmd_.empty())
+			return 404;
+
 		if (!stopping_)
 		{
-			// TODO: exec stop
 			stopping_ = true;
+			try
+			{
+				error_ = run_process(stop_cmd_);
+			}
+			catch (...)
+			{
+				error_ = -1;
+			}
 		}
 		return{ 303, { { "location", "/image" } } };
 	}
@@ -106,7 +118,10 @@ struct app
 
 	response route(request const & req)
 	{
-		if (req.path == "/image" && req.method == "GET")
+		if (req.path == "/exec/" && req.method == "POST")
+		{
+		}
+		else if (req.path == "/image" && req.method == "GET")
 		{
 			return this->get_image(req);
 		}
@@ -124,7 +139,7 @@ struct app
 		}
 		else
 		{
-			return http_abort(404);
+			return 404;
 		}
 	}
 
@@ -141,22 +156,26 @@ private:
 	status_t status_;
 	std::string workspace_;
 	std::string image_name_;
+	std::string stop_cmd_;
+	int32_t error_;
 	bool stopping_;
 };
 
 int main(int argc, char * argv[])
 {
 	std::string image_name;
+	std::string stop_cmd;
 	std::string workspace;
 	int port = 8080;
 
 	parse_argv(argc, argv, {
 		{ port, "--port", 'p' },
+		{ stop_cmd, "--stop-cmd" },
 		{ image_name, "image-name" },
 		{ workspace, "workspace" },
 	});
 
-	app a(workspace, image_name);
+	app a(workspace, image_name, stop_cmd);
 	tcp_listen(port, [&a](istream & in, ostream & out) {
 		http_server(in, out, a);
 	});
