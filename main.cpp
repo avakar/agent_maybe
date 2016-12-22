@@ -3,6 +3,7 @@
 #include "file.hpp"
 #include "chan.hpp"
 #include "tar.hpp"
+#include "argparse.hpp"
 
 #include "json.hpp"
 using nlohmann::json;
@@ -121,10 +122,20 @@ private:
 	bool stopping_;
 };
 
-int main()
+int main(int argc, char * argv[])
 {
-	app a("c:\\devel\\checkouts\\agent_maybe\\ws", "win10-wbam");
-	tcp_listen(8080, [&a](istream & in, ostream & out) {
+	std::string image_name;
+	std::string workspace;
+	int port = 8080;
+
+	parse_argv(argc, argv, {
+		{ port, "--port", 'p' },
+		{ image_name, "image-name" },
+		{ workspace, "workspace" },
+	});
+
+	app a(workspace, image_name);
+	tcp_listen(port, [&a](istream & in, ostream & out) {
 		http_server(in, out, a);
 	});
 }

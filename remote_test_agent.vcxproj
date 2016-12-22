@@ -146,6 +146,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="argparse.hpp" />
     <ClInclude Include="chan.hpp" />
     <ClInclude Include="file.hpp" />
     <ClInclude Include="http_server.hpp" />
@@ -158,9 +159,11 @@
     <ClInclude Include="win32_socket.hpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="argparse.cpp" />
     <ClCompile Include="http_server.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="tar.cpp" />
+    <ClCompile Include="utils.cpp" />
     <ClCompile Include="win32_chan.cpp" />
     <ClCompile Include="win32_file.cpp" />
     <ClCompile Include="win32_socket.cpp" />

@@ -11,6 +11,7 @@
     <ClInclude Include="chan.hpp" />
     <ClInclude Include="win32_error.hpp" />
     <ClInclude Include="tar.hpp" />
+    <ClInclude Include="argparse.hpp" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp" />
@@ -19,5 +20,7 @@
     <ClCompile Include="win32_file.cpp" />
     <ClCompile Include="win32_chan.cpp" />
     <ClCompile Include="tar.cpp" />
+    <ClCompile Include="utils.cpp" />
+    <ClCompile Include="argparse.cpp" />
   </ItemGroup>
 </Project>

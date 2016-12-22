@@ -5,6 +5,7 @@
 #include <iterator>
 #include <string>
 #include <stdexcept>
+#include <algorithm>
 #include <assert.h>
 
 namespace std

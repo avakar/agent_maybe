@@ -2,6 +2,11 @@
 #define UTILS_HPP
 
 #include "string_view.hpp"
+#include <vector>
+
+std::vector<std::string> split(std::string_view str, char sep);
+
+bool starts_with(std::string_view str, std::string_view prefix);
 
 template <typename T, typename Traits>
 std::basic_string_view<T, Traits> lstrip(std::basic_string_view<T, Traits> const & str)
