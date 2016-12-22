@@ -9,7 +9,7 @@ static std::pair<uint16_t, std::string_view> const status_texts[] = {
 	{ 404, "Not Found" },
 };
 
-int compare_header_name(std::string_view const & lhs, std::string_view const & rhs) noexcept
+int compare_header_name(std::string_view lhs, std::string_view rhs) noexcept
 {
 	char const * lhs_first = lhs.data();
 	char const * lhs_last = lhs_first + lhs.size();
@@ -23,7 +23,7 @@ int compare_header_name(std::string_view const & lhs, std::string_view const & r
 
 		if ('a' <= l && l <= 'z' && 'A' <= r && r <= 'Z')
 			l -= ('a' - 'A');
-		if ('a' <= r && r <= 'Z' && 'A' <= l && l <= 'Z')
+		if ('a' <= r && r <= 'z' && 'A' <= l && l <= 'Z')
 			r -= ('a' - 'A');
 
 		if (l != r)
@@ -79,7 +79,11 @@ struct fixed_req_stream final
 			return len;
 		}
 
-		return in_.read(buf, len);
+		size_t r = in_.read(buf, len);
+		assert(r <= len);
+		assert(r <= limit_);
+		limit_ -= r;
+		return r;
 	}
 
 private:
@@ -88,8 +92,48 @@ private:
 	uint64_t limit_;
 };
 
+struct chunked_req_stream final
+	: istream
+{
+	chunked_req_stream(std::string_view & prebuf, istream & in)
+		: prebuf_(prebuf), in_(in)
+	{
+	}
 
+	size_t read(char * buf, size_t len) override
+	{
+		return 0;
+	}
 
+private:
+	std::string_view & prebuf_;
+	istream & in_;
+};
+
+}
+
+static bool load_num(uint64_t & num, std::string_view str)
+{
+	if (str.empty())
+		return false;
+
+	uint64_t r = 0;
+	while (!str.empty())
+	{
+		char ch = str[0];
+		if ('0' > ch || ch > '9')
+			return false;
+
+		uint64_t new_r = r * 10 + (ch - '0');
+		if (new_r < r)
+			return false;
+
+		r = new_r;
+		str.remove_prefix(1);
+	}
+
+	num = r;
+	return true;
 }
 
 void http_server(istream & in, ostream & out, std::function<response(request &&)> const & fn)
@@ -109,7 +153,7 @@ void http_server(istream & in, ostream & out, std::function<response(request &&)
 					return false;
 
 				size_t r = in.read(last, end - last);
-				assert(r < size_t(end - last));
+				assert(r <= size_t(end - last));
 				last += r;
 
 				if (r == 0)
@@ -185,13 +229,43 @@ void http_server(istream & in, ostream & out, std::function<response(request &&)
 			req.method == std::string_view("POST")
 			|| req.method == "PUT";
 
+		std::shared_ptr<istream> body;
+
+		bool malformed = false;
 		if (!has_body)
 		{
-			req.body = std::make_shared<fixed_req_stream>(prebuf, in, 0);
+			body = std::make_shared<fixed_req_stream>(prebuf, in, 0);
 		}
 		else
 		{
+			if (std::string_view const * cl = get_single(req.headers, "content-length"))
+			{
+				uint64_t content_length;
+				if (load_num(content_length, *cl))
+					body = std::make_shared<fixed_req_stream>(prebuf, in, content_length);
+			}
+
+			if (!body)
+			{
+				bool chunked = false;
+				for (std::string_view tok: enum_headers(req.headers, "transfer-encoding"))
+				{
+					if (chunked)
+						malformed = true;
+					if (tok == "chunked")
+						chunked = true;
+					else
+						malformed = true;
+				}
+
+				if (chunked)
+					body = std::make_shared<chunked_req_stream>(prebuf, in);
+				else
+					body = std::make_shared<fixed_req_stream>(prebuf, in, 0);
+			}
 		}
+
+		req.body = body;
 
 		std::cerr << req.path << std::flush;
 
@@ -273,6 +347,13 @@ void http_server(istream & in, ostream & out, std::function<response(request &&)
 				out.write_all(write_buf, chunk);
 				out.write_all("\r\n", 2);
 			}
+		}
+
+		for (;;)
+		{
+			size_t r = body->read(write_buf, sizeof write_buf);
+			if (r == 0)
+				break;
 		}
 
 		if (!prebuf.empty())

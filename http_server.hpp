@@ -7,7 +7,7 @@
 #include <memory>
 #include <functional>
 
-int compare_header_name(std::string_view const & lhs, std::string_view const & rhs) noexcept;
+int compare_header_name(std::string_view lhs, std::string_view rhs) noexcept;
 
 struct header_view
 {
@@ -40,6 +40,78 @@ using header_list = std::vector<header_view>;
 
 std::pair<header_view const *, header_view const *> get_header_range(header_list const & headers, std::string_view name);
 std::string_view const * get_single(header_list const & headers, std::string_view name);
+
+struct enum_headers
+{
+	struct const_iterator
+	{
+		const_iterator(enum_headers * self)
+			: self_(self)
+		{
+		}
+
+		std::string_view operator*() const
+		{
+			return self_->front();
+		}
+
+		void operator++()
+		{
+			self_->pop_front();
+		}
+
+		friend bool operator==(const_iterator const & lhs, const_iterator const & rhs)
+		{
+			return (lhs.self_ == rhs.self_)
+				|| ((lhs.self_ == nullptr || lhs.self_->empty()) == (rhs.self_ == nullptr && rhs.self_->empty()));
+		}
+
+		friend bool operator!=(const_iterator const & lhs, const_iterator const & rhs)
+		{
+			return !(lhs == rhs);
+		}
+
+		enum_headers * self_;
+	};
+
+	explicit enum_headers(header_list const & h, std::string_view name)
+	{
+		auto r = get_header_range(h, name);
+		first_ = r.first;
+		last_ = r.second;
+	}
+
+	bool empty() const
+	{
+		return first_ != last_;
+	}
+
+	std::string_view front() const
+	{
+		assert(!this->empty());
+		return first_->value;
+	}
+
+	void pop_front()
+	{
+		assert(!this->empty());
+		++first_;
+	}
+
+	const_iterator begin()
+	{
+		return const_iterator(this);
+	}
+
+	const_iterator end()
+	{
+		return const_iterator(nullptr);
+	}
+
+private:
+	header_view const * first_;
+	header_view const * last_;
+};
 
 struct request
 {

@@ -22,5 +22,6 @@
     <ClCompile Include="tar.cpp" />
     <ClCompile Include="utils.cpp" />
     <ClCompile Include="argparse.cpp" />
+    <ClCompile Include="stream.cpp" />
   </ItemGroup>
 </Project>

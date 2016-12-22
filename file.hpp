@@ -12,6 +12,7 @@ struct file
 	~file();
 	file & operator=(file && o);
 
+	void create(std::string_view name);
 	void open_ro(std::string_view name);
 	void close();
 
@@ -19,6 +20,7 @@ struct file
 	uint64_t mtime();
 
 	istream & in_stream();
+	ostream & out_stream();
 
 private:
 	struct impl;

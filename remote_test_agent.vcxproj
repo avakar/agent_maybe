@@ -162,6 +162,7 @@
     <ClCompile Include="argparse.cpp" />
     <ClCompile Include="http_server.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="stream.cpp" />
     <ClCompile Include="tar.cpp" />
     <ClCompile Include="utils.cpp" />
     <ClCompile Include="win32_chan.cpp" />

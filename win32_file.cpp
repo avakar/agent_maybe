@@ -45,7 +45,7 @@ static std::string to_utf8(std::wstring_view s)
 }
 
 struct file::impl final
-	: istream
+	: istream, ostream
 {
 	HANDLE h;
 
@@ -58,6 +58,17 @@ struct file::impl final
 		ReadFile(h, buf, (DWORD)len, &dwRead, nullptr);
 
 		return dwRead;
+	}
+
+	size_t write(char const * buf, size_t len) override
+	{
+		if (len > MAXDWORD)
+			len = MAXDWORD;
+
+		DWORD dwWritten;
+		WriteFile(h, buf, (DWORD)len, &dwWritten, nullptr);
+
+		return dwWritten;
 	}
 };
 
@@ -98,6 +109,19 @@ void file::open_ro(std::string_view name)
 	pimpl_ = pimpl.release();
 }
 
+void file::create(std::string_view name)
+{
+	std::wstring name16 = to_utf16(name);
+
+	std::unique_ptr<impl> pimpl(new impl());
+	pimpl->h = CreateFileW(name16.c_str(), GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ, nullptr, CREATE_ALWAYS, 0, 0);
+	if (pimpl->h == INVALID_HANDLE_VALUE)
+		throw win32_error(GetLastError());
+
+	this->close();
+	pimpl_ = pimpl.release();
+}
+
 void file::close()
 {
 	if (pimpl_ != nullptr)
@@ -131,6 +155,11 @@ uint64_t file::mtime()
 }
 
 istream & file::in_stream()
+{
+	return *pimpl_;
+}
+
+ostream & file::out_stream()
 {
 	return *pimpl_;
 }

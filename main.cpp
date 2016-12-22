@@ -86,6 +86,24 @@ struct app
 		return{ std::shared_ptr<istream>(px, &px->ch), { { "content-type", "application/x-tar" } } };
 	}
 
+	response post_tar(request const & req)
+	{
+		tarfile_reader tr(*req.body);
+
+		std::string name;
+		uint64_t size;
+		std::shared_ptr<istream> content;
+
+		while (tr.next(name, size, content))
+		{
+			file fout;
+			fout.create(join_paths(workspace_, name));
+			copy(fout.out_stream(), *content);
+		}
+
+		return 200;
+	}
+
 	response route(request const & req)
 	{
 		if (req.path == "/image" && req.method == "GET")
@@ -99,6 +117,10 @@ struct app
 		else if (req.path == "/tar" && req.method == "GET")
 		{
 			return this->get_tar(req);
+		}
+		else if (req.path == "/tar" && req.method == "POST")
+		{
+			return this->post_tar(req);
 		}
 		else
 		{

@@ -7,6 +7,21 @@
 struct istream
 {
 	virtual size_t read(char * buf, size_t len) = 0;
+
+	void read_all(char * buf, size_t len)
+	{
+		while (len)
+		{
+			size_t r = this->read(buf, len);
+			assert(r <= len);
+
+			if (r == 0)
+				throw std::runtime_error("premature end of stream");
+
+			buf += r;
+			len -= r;
+		}
+	}
 };
 
 struct ostream
@@ -46,5 +61,8 @@ struct string_istream
 private:
 	std::string_view str_;
 };
+
+void copy(ostream & out, istream & in, size_t bufsize = 64 * 1024);
+void copy(ostream & out, istream & in, char * buf, size_t bufsize = 64 * 1024);
 
 #endif // STREAM_HPP
