@@ -1,7 +1,7 @@
 #ifndef UTILS_HPP
 #define UTILS_HPP
 
-#include "string_view.hpp"
+#include <string_view>
 #include <vector>
 
 std::vector<std::string> split(std::string_view str, char sep);

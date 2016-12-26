@@ -48,7 +48,7 @@ struct app
 			{ "name", image_name_ },
 		};
 
-		return response(r.dump(), { { "content-type", "application/json" } });
+		return{ r.dump(), { { "content-type", "application/json" } } };
 	}
 
 	response stop_image(request const & req)
@@ -118,10 +118,7 @@ struct app
 
 	response route(request const & req)
 	{
-		if (req.path == "/exec/" && req.method == "POST")
-		{
-		}
-		else if (req.path == "/image" && req.method == "GET")
+		if (req.path == "/image" && req.method == "GET")
 		{
 			return this->get_image(req);
 		}

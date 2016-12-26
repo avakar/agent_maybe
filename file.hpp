@@ -2,7 +2,7 @@
 #define FILE_HPP
 
 #include "stream.hpp"
-#include "string_view.hpp"
+#include <string_view>
 #include <functional>
 
 struct file

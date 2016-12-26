@@ -1,7 +1,7 @@
 #ifndef STREAM_HPP
 #define STREAM_HPP
 
-#include "string_view.hpp"
+#include <string_view>
 #include <assert.h>
 
 struct istream

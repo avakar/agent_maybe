@@ -1,0 +1,8 @@
+.vs/
+_deps/
+Debug/
+Release/
+deps.props
+**.VC.opendb
+**.sdf
+**.vcxproj.user

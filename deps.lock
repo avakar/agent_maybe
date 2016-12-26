@@ -1,0 +1,7 @@
+[
+    {
+        type: 'git'
+        repo: 'https://github.com/avakar/string_view.git'
+        commit: '246c0989bcd14f4538323a3b41060272d8fa0cc0'
+    }
+]
