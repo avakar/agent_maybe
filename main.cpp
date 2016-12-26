@@ -6,7 +6,7 @@
 #include "argparse.hpp"
 #include "process.hpp"
 
-#include "json.hpp"
+#include <json.hpp>
 using nlohmann::json;
 
 using std::move;

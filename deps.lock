@@ -1,6 +1,11 @@
 [
     {
         type: 'git'
+        repo: 'https://github.com/nlohmann/json.git'
+        commit: '0e55af23fcb013a5b3d1c1339a6884dd6b62775f'
+    }
+    {
+        type: 'git'
         repo: 'https://github.com/avakar/string_view.git'
         commit: '246c0989bcd14f4538323a3b41060272d8fa0cc0'
     }
