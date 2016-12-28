@@ -6,7 +6,7 @@
 #include <stdint.h>
 #include <memory>
 
-struct tarfile_writer
+struct tarfile_writer final
 {
 	explicit tarfile_writer(ostream & out);
 	void add(std::string_view name, uint64_t size, uint64_t mtime, istream & file);

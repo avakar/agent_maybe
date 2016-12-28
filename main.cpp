@@ -73,29 +73,17 @@ struct app
 
 	response get_tar(request const & req)
 	{
-		struct ctx
-		{
-			app & a;
-			chan ch;
-			tarfile_writer tf;
+		auto body = make_istream([this](ostream & out) {
+			tarfile_writer tf(out);
+			enum_files(this->workspace_, [this, &tf](std::string_view fname) {
+				file fin;
+				fin.open_ro(join_paths(this->workspace_, fname));
+				tf.add(fname, fin.size(), fin.mtime(), fin.in_stream());
+			});
+			tf.close();
+		});
 
-			ctx(app & a)
-				: a(a), tf(ch)
-			{
-				ch.add_coroutine([this] {
-					enum_files(this->a.workspace_, [this](std::string_view fname) {
-						file fin;
-						fin.open_ro(join_paths(this->a.workspace_, fname));
-						tf.add(fname, fin.size(), fin.mtime(), fin.in_stream());
-					});
-
-					tf.close();
-				});
-			}
-		};
-
-		auto px = std::make_shared<ctx>(*this);
-		return{ std::shared_ptr<istream>(px, &px->ch), { { "content-type", "application/x-tar" } } };
+		return{ body, { { "content-type", "application/x-tar" } } };
 	}
 
 	response post_tar(request const & req)
