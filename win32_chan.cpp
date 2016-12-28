@@ -1,5 +1,4 @@
 #include "chan.hpp"
-#include <list>
 #include <memory>
 #include <algorithm>
 #include "win32_error.hpp"
@@ -7,48 +6,66 @@
 
 namespace {
 
-struct chan
-	: istream, ostream
+struct chan final
+	: istream, private ostream
 {
-	chan();
+	explicit chan(std::function<void(ostream & out)> coroutine);
 	~chan();
-
-	size_t read(char * buf, size_t len) override;
-	size_t write(char const * buf, size_t len) override;
-
-	void add_coroutine(std::function<void()> co);
-
-	struct coroutine
-	{
-		std::function<void()> fn;
-		void * fiber;
-
-		union
-		{
-			char * rbuf;
-			char const * wbuf;
-		};
-
-		size_t buf_size;
-	};
-
-	// The current is at the front.
-	std::list<coroutine> ready;
-	std::list<coroutine> readers;
-	std::list<coroutine> writers;
-	std::list<coroutine> cleanup;
-
-	void clean();
-	static void CALLBACK fiber_entry(void * param);
-
 	chan(chan && o) = delete;
 	chan & operator=(chan && o) = delete;
+
+	size_t read(char * buf, size_t len) override;
+
+private:
+	std::function<void(ostream & out)> coroutine_;
+	void * fiber_;
+	char * rd_buf_;
+	size_t rd_len_;
+
+	void switch_to_reader();
+	void switch_to_writer();
+	size_t write(char const * buf, size_t len) override;
+
+	static void CALLBACK fiber_entry(void * param);
 };
 
 }
 
-chan::chan()
+chan::chan(std::function<void(ostream & out)> coroutine)
+	: coroutine_(std::move(coroutine)), fiber_(nullptr)
 {
+}
+
+chan::~chan()
+{
+	if (fiber_ != nullptr)
+	{
+		rd_buf_ = nullptr;
+		rd_len_ = 0;
+		this->switch_to_writer();
+
+		DeleteFiber(fiber_);
+	}
+}
+
+void chan::switch_to_reader()
+{
+	assert(fiber_ != nullptr);
+
+	void * self = GetCurrentFiber();
+	std::swap(fiber_, self);
+	SwitchToFiber(self);
+}
+
+void chan::switch_to_writer()
+{
+	if (fiber_ == nullptr)
+	{
+		fiber_ = CreateFiber(32 * 1024, &chan::fiber_entry, this);
+		if (fiber_ == nullptr)
+			throw win32_error(GetLastError());
+	}
+
 	void * self = ConvertThreadToFiber(nullptr);
 	if (self == nullptr)
 	{
@@ -59,165 +76,60 @@ chan::chan()
 			throw win32_error(GetLastError());
 	}
 
-	ready.push_back(coroutine());
-	ready.back().fiber = self;
-}
-
-chan::~chan()
-{
-	while (ready.size() > 1)
-	{
-		ready.splice(ready.begin(), ready, ready.end());
-		SwitchToFiber(ready.front().fiber);
-		this->clean();
-	}
-
-	assert(readers.empty());
-	assert(writers.empty());
+	std::swap(fiber_, self);
+	SwitchToFiber(self);
 }
 
 size_t chan::read(char * buf, size_t len)
 {
-	if (!writers.empty())
-	{
-		auto & wr = writers.front();
-		len = (std::min)(len, wr.buf_size);
-		memcpy(buf, wr.wbuf, len);
-		wr.buf_size = len;
+	rd_buf_ = buf;
+	rd_len_ = len;
+	this->switch_to_writer();
 
-		ready.splice(ready.end(), writers, writers.begin());
-		return len;
-	}
-
-	// Move ourselves to the reader list and activate the first ready coroutine.
-	if (ready.size() < 2)
-		return 0;
-
-	ready.front().rbuf = buf;
-	ready.front().buf_size = len;
-	readers.splice(readers.end(), ready, ready.begin());
-
-	SwitchToFiber(ready.front().fiber);
-	clean();
-
-	return ready.front().buf_size;
+	return rd_len_;
 }
 
 size_t chan::write(char const * buf, size_t len)
 {
-	if (!readers.empty())
-	{
-		auto & rd = readers.front();
-		len = (std::min)(len, rd.buf_size);
-		memcpy(rd.rbuf, buf, len);
-		rd.buf_size = len;
+	if (len == 0)
+		return 0;
 
-		ready.splice(ready.end(), readers, readers.begin());
-		return len;
-	}
+	if (rd_len_ == 0)
+		throw std::runtime_error("epipe");
 
-	// Move ourselves to the writer list and activate the first ready coroutine.
-	if (ready.size() < 2)
-		throw std::runtime_error("can't write, no readers available");
+	if (rd_len_ < len)
+		len = rd_len_;
 
-	ready.front().wbuf = buf;
-	ready.front().buf_size = len;
-	writers.splice(writers.end(), ready, ready.begin());
+	memcpy(rd_buf_, buf, len);
+	rd_len_ = len;
 
-	SwitchToFiber(ready.front().fiber);
-	this->clean();
-
-	size_t r = ready.front().buf_size;
-	if (r == 0)
-		throw std::runtime_error("broken channel");
-
-	return r;
+	this->switch_to_reader();
+	return len;
 }
 
 void CALLBACK chan::fiber_entry(void * param)
+
 {
 	chan * self = static_cast<chan *>(param);
 
 	try
 	{
-		(self->ready.front().fn)();
+		(self->coroutine_)(*self);
 	}
 	catch (...)
 	{
 		// TODO
 	}
 
-	self->cleanup.splice(self->cleanup.end(), self->ready, self->ready.begin());
-
-	void * target;
-
-	if (!self->ready.empty())
+	for (;;)
 	{
-		target = self->ready.front().fiber;
+		self->rd_len_ = 0;
+		self->switch_to_reader();
 	}
-	else if (!self->readers.empty())
-	{
-		self->ready.splice(self->ready.begin(), self->readers, self->readers.begin());
-
-		auto & rd = self->ready.front();
-		rd.buf_size = 0;
-		target = rd.fiber;
-	}
-	else
-	{
-		assert(!self->writers.empty());
-		self->ready.splice(self->ready.begin(), self->writers, self->writers.begin());
-
-		auto & rd = self->ready.front();
-		rd.buf_size = 0;
-		target = rd.fiber;
-	}
-
-	SwitchToFiber(target);
-}
-
-void chan::add_coroutine(std::function<void()> co)
-{
-	ready.push_back(coroutine());
-
-	void * fiber = CreateFiber(32*1024, &chan::fiber_entry, this);
-
-	if (fiber == nullptr)
-	{
-		ready.pop_back();
-		throw win32_error(GetLastError());
-	}
-
-	ready.back().fiber = fiber;
-	ready.back().fn = std::move(co);
-}
-
-void chan::clean()
-{
-	for (auto && co : cleanup)
-		DeleteFiber(co.fiber);
-	cleanup.clear();
 }
 
 std::shared_ptr<istream> make_istream(std::function<void(ostream & out)> fn)
 {
-	struct ctx
-	{
-		std::function<void(ostream & out)> fn;
-		chan ch;
-
-		ctx(std::function<void(ostream & out)> && fn)
-			: fn(std::move(fn))
-		{
-		}
-	};
-
-	auto px = std::make_shared<ctx>(std::move(fn));
-	auto pp = px.get();
-
-	px->ch.add_coroutine([pp]() {
-		pp->fn(pp->ch);
-	});
-
-	return std::shared_ptr<istream>(px, &px->ch);
+	auto px = std::make_shared<chan>(std::move(fn));
+	return std::shared_ptr<istream>(px, px.get());
 }
