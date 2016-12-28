@@ -9,4 +9,14 @@
         repo: 'https://github.com/avakar/string_view.git'
         commit: '246c0989bcd14f4538323a3b41060272d8fa0cc0'
     }
+    {
+        type: 'git'
+        repo: 'https://github.com/avakar/cpp_zlib.git'
+        commit: 'b52548a92aeaaac330e281a8eeaf6428d5ff6db3'
+    }
+    {
+        type: 'git'
+        repo: 'https://github.com/madler/zlib.git'
+        commit: '50893291621658f355bc5b4d450a8d06a563053d'
+    }
 ]

@@ -6,6 +6,9 @@ packages:
     string_view:
         type: 'git'
         repo: 'https://github.com/avakar/string_view.git'
+    zlib:
+        type: 'git'
+        repo: 'https://github.com/avakar/cpp_zlib.git'
 
 gen:
     msbuild:

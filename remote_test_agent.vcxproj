@@ -179,6 +179,11 @@
     <ClCompile Include="win32_process.cpp" />
     <ClCompile Include="win32_socket.cpp" />
   </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="$(dep_zlib)\zlib.vcxproj">
+      <Project>{511fc7bd-ef84-49a1-b8cb-25e5f4959b15}</Project>
+    </ProjectReference>
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
