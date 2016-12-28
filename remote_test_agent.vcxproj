@@ -158,10 +158,8 @@
     <ClInclude Include="chan.hpp" />
     <ClInclude Include="file.hpp" />
     <ClInclude Include="http_server.hpp" />
-    <ClInclude Include="json.hpp" />
     <ClInclude Include="process.hpp" />
     <ClInclude Include="stream.hpp" />
-    <ClInclude Include="string_view.hpp" />
     <ClInclude Include="tar.hpp" />
     <ClInclude Include="utf.hpp" />
     <ClInclude Include="utils.hpp" />
