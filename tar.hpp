@@ -5,6 +5,7 @@
 #include <string_view>
 #include <stdint.h>
 #include <memory>
+#include <zlib/gzip_filter.hpp>
 
 struct tarfile_writer final
 {
@@ -28,21 +29,6 @@ private:
 	istream & in_;
 	uint64_t cur_len_;
 	uint64_t next_header_offset_;
-};
-
-struct gzip_filter
-{
-	explicit gzip_filter(bool compress);
-	gzip_filter(gzip_filter && o);
-	~gzip_filter();
-	gzip_filter & operator=(gzip_filter && o);
-
-	std::pair<size_t, size_t> process(char const * inbuf, size_t inlen, char * outbuf, size_t outlen);
-	size_t finish(char * outbuf, size_t outlen);
-
-private:
-	struct impl;
-	impl * pimpl_;
 };
 
 template <typename Filter>
@@ -132,8 +118,5 @@ private:
 	char * inptr_;
 	size_t inlen_;
 };
-
-using gzip_writer = filter_writer<gzip_filter>;
-using gzip_reader = filter_reader<gzip_filter>;
 
 #endif // TAR_HPP

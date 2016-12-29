@@ -74,7 +74,7 @@ struct app
 	response get_tar(request const & req)
 	{
 		auto body = make_istream([this](ostream & out) {
-			gzip_writer gz(out, /*compress=*/true);
+			filter_writer<gzip_filter> gz(out, /*compress=*/true);
 			tarfile_writer tf(gz);
 			enum_files(this->workspace_, [this, &tf](std::string_view fname) {
 				file fin;
@@ -105,7 +105,7 @@ struct app
 		auto * ct = get_single(req.headers, "content-type");
 		if (ct && *ct == "application/x-gzip")
 		{
-			gzip_reader gz(*req.body, /*compress=*/false);
+			filter_reader<gzip_filter> gz(*req.body, /*compress=*/false);
 			tarfile_reader tr(gz);
 			go(tr);
 			return 200;
