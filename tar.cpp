@@ -190,86 +190,117 @@ size_t tarfile_reader::read(char * buf, size_t len)
 	return r;
 }
 
-struct gzip_writer::impl
+struct gzip_filter::impl
 {
-	ostream & out;
+	bool compress;
 	z_stream z;
-	Bytef buf[32*1024];
+
+	void close()
+	{
+		if (compress)
+			deflateEnd(&z);
+		else
+			inflateEnd(&z);
+	}
 };
 
-gzip_writer::gzip_writer(ostream & out)
-	: pimpl_(new impl{ out })
+gzip_filter::gzip_filter(bool compress)
+	: pimpl_(new impl{ compress })
 {
+	pimpl_->z.zalloc = nullptr;
+	pimpl_->z.zfree = nullptr;
+	pimpl_->z.opaque = nullptr;
 	pimpl_->z.next_in = nullptr;
-	pimpl_->z.zalloc = Z_NULL;
-	pimpl_->z.zfree = Z_NULL;
-	pimpl_->z.opaque = Z_NULL;
 
-	if (deflateInit2(&pimpl_->z, Z_DEFAULT_COMPRESSION, Z_DEFLATED, 15 + 16, 8, Z_DEFAULT_STRATEGY) != Z_OK)
+	int r;
+	if (compress)
+		r = deflateInit2(&pimpl_->z, Z_DEFAULT_COMPRESSION, Z_DEFLATED, 15 + 16, 8, Z_DEFAULT_STRATEGY);
+	else
+		r = inflateInit2(&pimpl_->z, 15 + 16);
+
+	if (r < 0)
 	{
 		delete pimpl_;
-		throw std::runtime_error("failed to initialize deflate");
+		throw std::runtime_error("cannot initialize zlib");
 	}
 }
 
-gzip_writer::gzip_writer(gzip_writer && o)
+gzip_filter::gzip_filter(gzip_filter && o)
 	: pimpl_(o.pimpl_)
 {
 	o.pimpl_ = nullptr;
 }
 
-gzip_writer::~gzip_writer()
+gzip_filter::~gzip_filter()
 {
-	if (pimpl_ != nullptr)
+	if (pimpl_)
 	{
-		deflateEnd(&pimpl_->z);
+		pimpl_->close();
 		delete pimpl_;
 	}
 }
 
-gzip_writer & gzip_writer::operator=(gzip_writer && o)
+gzip_filter & gzip_filter::operator=(gzip_filter && o)
 {
 	std::swap(pimpl_, o.pimpl_);
 	return *this;
 }
 
-
-size_t gzip_writer::write(char const * buf, size_t len)
+std::pair<size_t, size_t> gzip_filter::process(char const * inbuf, size_t inlen, char * outbuf, size_t outlen)
 {
 	assert(pimpl_ != nullptr);
 
-	pimpl_->z.next_in = (Bytef *)buf;
-	pimpl_->z.avail_in = len;
+	pimpl_->z.next_in = (Bytef *)inbuf;
+	pimpl_->z.avail_in = inlen;
 
-	pimpl_->z.next_out = pimpl_->buf;
-	pimpl_->z.avail_out = sizeof pimpl_->buf;
+	pimpl_->z.next_out = (Bytef *)outbuf;
+	pimpl_->z.avail_out = outlen;
 
-	if (deflate(&pimpl_->z, Z_NO_FLUSH) < 0)
+	int r;
+	if (pimpl_->compress)
+		r = deflate(&pimpl_->z, Z_NO_FLUSH);
+	else
+		r = inflate(&pimpl_->z, Z_NO_FLUSH);
+
+	if (r < 0)
 		throw std::runtime_error("zlib error");
 
-	if (pimpl_->z.next_out != pimpl_->buf)
-		pimpl_->out.write_all((char const *)pimpl_->buf, pimpl_->z.next_out - pimpl_->buf);
-
-	return (char const *)pimpl_->z.next_in - buf;
+	return std::make_pair(pimpl_->z.next_in - (Bytef *)inbuf, pimpl_->z.next_out - (Bytef *)outbuf);
 }
 
-void gzip_writer::close()
+size_t gzip_filter::finish(char * outbuf, size_t outlen)
 {
-	assert(pimpl_ != nullptr);
+	if (pimpl_ == nullptr)
+		return 0;
 
-	int r = Z_OK;
-	while (r == Z_OK)
+	pimpl_->z.next_in = nullptr;
+	pimpl_->z.avail_in = 0;
+
+	pimpl_->z.next_out = (Bytef *)outbuf;
+	pimpl_->z.avail_out = outlen;
+
+	size_t ret = 0;
+	while (ret == 0)
 	{
-		pimpl_->z.next_in = nullptr;
-		pimpl_->z.avail_in = 0;
-		pimpl_->z.next_out = pimpl_->buf;
-		pimpl_->z.avail_out = sizeof pimpl_->buf;
+		int r;
+		if (pimpl_->compress)
+			r = deflate(&pimpl_->z, Z_FINISH);
+		else
+			r = inflate(&pimpl_->z, Z_FINISH);
 
-		r = deflate(&pimpl_->z, Z_FINISH);
 		if (r < 0)
 			throw std::runtime_error("zlib error");
 
-		if (pimpl_->z.next_out != pimpl_->buf)
-			pimpl_->out.write_all((char const *)pimpl_->buf, pimpl_->z.next_out - pimpl_->buf);
+		ret = pimpl_->z.next_out - (Bytef *)outbuf;
+
+		if (r == Z_STREAM_END)
+		{
+			pimpl_->close();
+			delete pimpl_;
+			pimpl_ = nullptr;
+			break;
+		}
 	}
+
+	return ret;
 }

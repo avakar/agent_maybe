@@ -74,7 +74,7 @@ struct app
 	response get_tar(request const & req)
 	{
 		auto body = make_istream([this](ostream & out) {
-			gzip_writer gz(out);
+			gzip_writer gz(out, /*compress=*/true);
 			tarfile_writer tf(gz);
 			enum_files(this->workspace_, [this, &tf](std::string_view fname) {
 				file fin;
@@ -89,20 +89,37 @@ struct app
 
 	response post_tar(request const & req)
 	{
-		tarfile_reader tr(*req.body);
+		auto go = [this](tarfile_reader & tr) {
+			std::string name;
+			uint64_t size;
+			std::shared_ptr<istream> content;
 
-		std::string name;
-		uint64_t size;
-		std::shared_ptr<istream> content;
+			while (tr.next(name, size, content))
+			{
+				file fout;
+				fout.create(join_paths(workspace_, name));
+				copy(fout.out_stream(), *content);
+			}
+		};
 
-		while (tr.next(name, size, content))
+		auto * ct = get_single(req.headers, "content-type");
+		if (ct && *ct == "application/x-gzip")
 		{
-			file fout;
-			fout.create(join_paths(workspace_, name));
-			copy(fout.out_stream(), *content);
+			gzip_reader gz(*req.body, /*compress=*/false);
+			tarfile_reader tr(gz);
+			go(tr);
+			return 200;
 		}
-
-		return 200;
+		else if (ct && *ct == "application/x-tar")
+		{
+			tarfile_reader tr(*req.body);
+			go(tr);
+			return 200;
+		}
+		else
+		{
+			return 406;
+		}
 	}
 
 	response route(request const & req)
