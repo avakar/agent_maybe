@@ -1,6 +1,6 @@
 [
     {
-        commit: 'b52548a92aeaaac330e281a8eeaf6428d5ff6db3'
+        commit: 'dbe6cd6f3848c581803e9c8740f50dc2a64445d4'
         repo: 'https://github.com/avakar/cpp_zlib.git'
         type: 'git'
     }
