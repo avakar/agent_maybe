@@ -30,4 +30,20 @@ private:
 	uint64_t next_header_offset_;
 };
 
+struct gzip_writer final
+	: ostream
+{
+	gzip_writer(ostream & out);
+	gzip_writer(gzip_writer && o);
+	~gzip_writer();
+	gzip_writer & operator=(gzip_writer && o);
+
+	size_t write(char const * buf, size_t len) override;
+	void close() override;
+
+private:
+	struct impl;
+	impl * pimpl_;
+};
+
 #endif // TAR_HPP

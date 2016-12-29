@@ -74,7 +74,8 @@ struct app
 	response get_tar(request const & req)
 	{
 		auto body = make_istream([this](ostream & out) {
-			tarfile_writer tf(out);
+			gzip_writer gz(out);
+			tarfile_writer tf(gz);
 			enum_files(this->workspace_, [this, &tf](std::string_view fname) {
 				file fin;
 				fin.open_ro(join_paths(this->workspace_, fname));
@@ -83,7 +84,7 @@ struct app
 			tf.close();
 		});
 
-		return{ body, { { "content-type", "application/x-tar" } } };
+		return{ body, { { "content-type", "application/x-gzip" } } };
 	}
 
 	response post_tar(request const & req)

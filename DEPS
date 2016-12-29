@@ -12,5 +12,5 @@ packages:
 
 gen:
     msbuild:
-      prop_prefix: 'dep_'
+      prop_prefix: 'dep_a69c6240_06d6_4d0b_981a_0546ad9b785c_'
       file: 'deps.props'

@@ -28,6 +28,10 @@ struct ostream
 {
 	virtual size_t write(char const * buf, size_t len) = 0;
 
+	virtual void close()
+	{
+	}
+
 	void write_all(char const * buf, size_t len)
 	{
 		while (len)

@@ -2,6 +2,7 @@
 #include <algorithm>
 #include <numeric>
 #include <stdint.h>
+#include "zlib.h"
 
 static void write_oct(char * buf, size_t len, uint64_t num)
 {
@@ -105,6 +106,7 @@ void tarfile_writer::add(std::string_view name, uint64_t size, uint64_t mtime, i
 void tarfile_writer::close()
 {
 	out_.write_all(g_empty_two_blocks, sizeof g_empty_two_blocks);
+	out_.close();
 }
 
 tarfile_reader::tarfile_reader(istream & in)
@@ -186,4 +188,88 @@ size_t tarfile_reader::read(char * buf, size_t len)
 		throw std::runtime_error("premature end of stream");
 
 	return r;
+}
+
+struct gzip_writer::impl
+{
+	ostream & out;
+	z_stream z;
+	Bytef buf[32*1024];
+};
+
+gzip_writer::gzip_writer(ostream & out)
+	: pimpl_(new impl{ out })
+{
+	pimpl_->z.next_in = nullptr;
+	pimpl_->z.zalloc = Z_NULL;
+	pimpl_->z.zfree = Z_NULL;
+	pimpl_->z.opaque = Z_NULL;
+
+	if (deflateInit2(&pimpl_->z, Z_DEFAULT_COMPRESSION, Z_DEFLATED, 15 + 16, 8, Z_DEFAULT_STRATEGY) != Z_OK)
+	{
+		delete pimpl_;
+		throw std::runtime_error("failed to initialize deflate");
+	}
+}
+
+gzip_writer::gzip_writer(gzip_writer && o)
+	: pimpl_(o.pimpl_)
+{
+	o.pimpl_ = nullptr;
+}
+
+gzip_writer::~gzip_writer()
+{
+	if (pimpl_ != nullptr)
+	{
+		deflateEnd(&pimpl_->z);
+		delete pimpl_;
+	}
+}
+
+gzip_writer & gzip_writer::operator=(gzip_writer && o)
+{
+	std::swap(pimpl_, o.pimpl_);
+	return *this;
+}
+
+
+size_t gzip_writer::write(char const * buf, size_t len)
+{
+	assert(pimpl_ != nullptr);
+
+	pimpl_->z.next_in = (Bytef *)buf;
+	pimpl_->z.avail_in = len;
+
+	pimpl_->z.next_out = pimpl_->buf;
+	pimpl_->z.avail_out = sizeof pimpl_->buf;
+
+	if (deflate(&pimpl_->z, Z_NO_FLUSH) < 0)
+		throw std::runtime_error("zlib error");
+
+	if (pimpl_->z.next_out != pimpl_->buf)
+		pimpl_->out.write_all((char const *)pimpl_->buf, pimpl_->z.next_out - pimpl_->buf);
+
+	return (char const *)pimpl_->z.next_in - buf;
+}
+
+void gzip_writer::close()
+{
+	assert(pimpl_ != nullptr);
+
+	int r = Z_OK;
+	while (r == Z_OK)
+	{
+		pimpl_->z.next_in = nullptr;
+		pimpl_->z.avail_in = 0;
+		pimpl_->z.next_out = pimpl_->buf;
+		pimpl_->z.avail_out = sizeof pimpl_->buf;
+
+		r = deflate(&pimpl_->z, Z_FINISH);
+		if (r < 0)
+			throw std::runtime_error("zlib error");
+
+		if (pimpl_->z.next_out != pimpl_->buf)
+			pimpl_->out.write_all((char const *)pimpl_->buf, pimpl_->z.next_out - pimpl_->buf);
+	}
 }
