@@ -1,4 +1,4 @@
-packages:
+dependencies:
     json:
         type: 'git'
         repo: 'https://github.com/nlohmann/json.git'

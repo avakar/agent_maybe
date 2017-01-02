@@ -1,22 +1,22 @@
 [
     {
-        commit: 'd6155e21e03eb209c490ed9808b1dbbf7971241e'
-        repo: 'https://github.com/avakar/cpp_zlib.git'
-        type: 'git'
-    }
+        "commit": "758b7413ca5706e89fc3749b69c1fd62a8d12030", 
+        "repo": "https://github.com/avakar/cpp_zlib.git", 
+        "type": "git"
+    }, 
     {
-        commit: '246c0989bcd14f4538323a3b41060272d8fa0cc0'
-        repo: 'https://github.com/avakar/string_view.git'
-        type: 'git'
-    }
+        "commit": "246c0989bcd14f4538323a3b41060272d8fa0cc0", 
+        "repo": "https://github.com/avakar/string_view.git", 
+        "type": "git"
+    }, 
     {
-        commit: '50893291621658f355bc5b4d450a8d06a563053d'
-        repo: 'https://github.com/madler/zlib.git'
-        type: 'git'
-    }
+        "commit": "50893291621658f355bc5b4d450a8d06a563053d", 
+        "repo": "https://github.com/madler/zlib.git", 
+        "type": "git"
+    }, 
     {
-        commit: '0e55af23fcb013a5b3d1c1339a6884dd6b62775f'
-        repo: 'https://github.com/nlohmann/json.git'
-        type: 'git'
+        "commit": "0e55af23fcb013a5b3d1c1339a6884dd6b62775f", 
+        "repo": "https://github.com/nlohmann/json.git", 
+        "type": "git"
     }
 ]
