@@ -1,4 +1,7 @@
 dependencies:
+    cpp_zlib:
+        type: 'git'
+        repo: 'https://github.com/avakar/cpp_zlib.git'
     json:
         type: 'git'
         repo: 'https://github.com/nlohmann/json.git'
@@ -6,9 +9,6 @@ dependencies:
     string_view:
         type: 'git'
         repo: 'https://github.com/avakar/string_view.git'
-    zlib:
-        type: 'git'
-        repo: 'https://github.com/avakar/cpp_zlib.git'
 
 gen:
     msbuild:
