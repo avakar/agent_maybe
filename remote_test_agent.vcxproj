@@ -56,10 +56,8 @@
   </ImportGroup>
   <ImportGroup Label="Shared">
   </ImportGroup>
-
   <Import Project="deps.props" />
   <Import Project="$(dep_a69c6240_06d6_4d0b_981a_0546ad9b785c_cpp_zlib)\zlib.props" />
-
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
@@ -157,7 +155,11 @@
     <ClInclude Include="argparse.hpp" />
     <ClInclude Include="chan.hpp" />
     <ClInclude Include="file.hpp" />
+    <ClInclude Include="format.hpp" />
+    <ClInclude Include="format_impl.hpp" />
+    <ClInclude Include="guid.hpp" />
     <ClInclude Include="http_server.hpp" />
+    <ClInclude Include="known_paths.hpp" />
     <ClInclude Include="process.hpp" />
     <ClInclude Include="stream.hpp" />
     <ClInclude Include="tar.hpp" />
@@ -168,13 +170,16 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="argparse.cpp" />
+    <ClCompile Include="guid.cpp" />
     <ClCompile Include="http_server.cpp" />
+    <ClCompile Include="known_paths.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="stream.cpp" />
     <ClCompile Include="tar.cpp" />
     <ClCompile Include="utf.cpp" />
     <ClCompile Include="utils.cpp" />
     <ClCompile Include="win32_chan.cpp" />
+    <ClCompile Include="win32_error.cpp" />
     <ClCompile Include="win32_file.cpp" />
     <ClCompile Include="win32_process.cpp" />
     <ClCompile Include="win32_socket.cpp" />

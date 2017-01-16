@@ -59,16 +59,33 @@ file & file::operator=(file && o)
 
 void file::open_ro(std::string_view name)
 {
-	std::wstring name16 = to_utf16(name);
-
-	std::unique_ptr<impl> pimpl(new impl());
-	pimpl->h = CreateFileW(name16.c_str(), GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING, 0, 0);
-	if (pimpl->h == INVALID_HANDLE_VALUE)
-		throw win32_error(GetLastError());
-
-	this->close();
-	pimpl_ = pimpl.release();
+	std::error_code err;
+	this->open_ro(name, err);
+	if (err)
+		throw std::system_error(err);
 }
+
+void file::open_ro(std::string_view name, std::error_code & ec) noexcept
+{
+	try
+	{
+		std::wstring name16 = to_utf16(name);
+
+		std::unique_ptr<impl> pimpl(new impl());
+		pimpl->h = CreateFileW(name16.c_str(), GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING, 0, 0);
+		if (pimpl->h == INVALID_HANDLE_VALUE)
+			return make_win32_error_code(GetLastError(), ec);
+
+		this->close();
+		pimpl_ = pimpl.release();
+		ec.clear();
+	}
+	catch (std::bad_alloc const &)
+	{
+		ec = std::make_error_code(std::errc::not_enough_memory);
+	}
+}
+
 
 void file::create(std::string_view name)
 {
@@ -182,4 +199,80 @@ std::string join_paths(std::string_view lhs, std::string_view rhs)
 	r.append("\\");
 	r.append(rhs);
 	return r;
+}
+
+namespace {
+
+struct win32_find_handle
+{
+	win32_find_handle(HANDLE h)
+		: h(h)
+	{
+	}
+
+	~win32_find_handle()
+	{
+		FindClose(h);
+	}
+
+	HANDLE h;
+};
+
+}
+
+static void rmtree16(std::wstring const & top, std::error_code & ec)
+{
+	WIN32_FIND_DATAW wfd;
+	auto handle_one = [&] {
+		if (wcscmp(wfd.cFileName, L".") != 0 && wcscmp(wfd.cFileName, L"..") == 0)
+			return;
+	};
+
+	HANDLE h = FindFirstFileW((top + L"\\*").c_str(), &wfd);
+	if (h == INVALID_HANDLE_VALUE)
+		return make_win32_error_code(GetLastError(), ec);
+	win32_find_handle hh(h);
+
+	do
+	{
+		if (wcscmp(wfd.cFileName, L".") != 0 && wcscmp(wfd.cFileName, L"..") == 0)
+			continue;
+
+		std::wstring path = top + L"\\" + wfd.cFileName;
+		if (wfd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
+		{
+
+			rmtree16(path, ec);
+			if (ec)
+				return;
+			if (!RemoveDirectoryW(path.c_str()))
+				return make_win32_error_code(GetLastError(), ec);
+		}
+		else
+		{
+			if (wfd.dwFileAttributes & FILE_ATTRIBUTE_READONLY)
+				(void)SetFileAttributesW(path.c_str(), wfd.dwFileAttributes & ~FILE_ATTRIBUTE_READONLY);
+
+			if (!DeleteFileW(path.c_str()))
+				return make_win32_error_code(GetLastError(), ec);
+		}
+	} while (FindNextFileW(h, &wfd));
+
+	DWORD err = GetLastError();
+	if (err != ERROR_NO_MORE_FILES)
+		make_win32_error_code(err, ec);
+	else
+		ec.clear();
+}
+
+void rmtree(std::string_view top, std::error_code & ec) noexcept
+{
+	try
+	{
+		rmtree16(to_utf16(top), ec);
+	}
+	catch (std::bad_alloc const &)
+	{
+		ec = std::make_error_code(std::errc::not_enough_memory);
+	}
 }

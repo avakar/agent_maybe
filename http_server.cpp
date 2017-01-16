@@ -362,9 +362,19 @@ void http_server(istream & in, ostream & out, std::function<response(request &&)
 
 		std::cerr << req.path << std::flush;
 
-		response resp = fn(std::move(req));
-
-		send_response(std::move(resp));
+		try
+		{
+			response resp = fn(std::move(req));
+			send_response(std::move(resp));
+		}
+		catch (std::exception const & e)
+		{
+			send_response({ e.what(), { { "content-type", "text/plain" } }, 500 });
+		}
+		catch (...)
+		{
+			send_response({ 500 });
+		}
 
 		for (;;)
 		{

@@ -22,6 +22,22 @@ struct istream
 			len -= r;
 		}
 	}
+
+	std::string read_all()
+	{
+		std::string r;
+
+		char buf[4096];
+		for (;;)
+		{
+			size_t rd = this->read(buf, sizeof buf);
+			if (rd == 0)
+				break;
+			r.append(buf, rd);
+		}
+
+		return r;
+	}
 };
 
 struct ostream
@@ -43,6 +59,11 @@ struct ostream
 			buf += r;
 			len -= r;
 		}
+	}
+
+	void write_all(std::string_view str)
+	{
+		this->write_all(str.begin(), str.size());
 	}
 };
 

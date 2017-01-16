@@ -12,6 +12,10 @@
     <ClInclude Include="argparse.hpp" />
     <ClInclude Include="process.hpp" />
     <ClInclude Include="utf.hpp" />
+    <ClInclude Include="guid.hpp" />
+    <ClInclude Include="format.hpp" />
+    <ClInclude Include="format_impl.hpp" />
+    <ClInclude Include="known_paths.hpp" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp" />
@@ -25,5 +29,8 @@
     <ClCompile Include="stream.cpp" />
     <ClCompile Include="win32_process.cpp" />
     <ClCompile Include="utf.cpp" />
+    <ClCompile Include="win32_error.cpp" />
+    <ClCompile Include="guid.cpp" />
+    <ClCompile Include="known_paths.cpp" />
   </ItemGroup>
 </Project>

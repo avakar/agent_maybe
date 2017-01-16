@@ -14,6 +14,7 @@ struct file
 
 	void create(std::string_view name);
 	void open_ro(std::string_view name);
+	void open_ro(std::string_view name, std::error_code & ec) noexcept;
 	void close();
 
 	uint64_t size();
@@ -30,5 +31,7 @@ private:
 std::string join_paths(std::string_view lhs, std::string_view rhs);
 
 void enum_files(std::string_view top, std::function<void(std::string_view fname)> const & cb);
+
+void rmtree(std::string_view top, std::error_code & ec) noexcept;
 
 #endif // FILE_HPP
