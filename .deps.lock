@@ -3,6 +3,7 @@
     "dependencies": {
       "cpp_zlib": "_deps/cpp_zlib", 
       "json": "_deps/json", 
+      "openssl_vc14": "_deps/openssl_vc14", 
       "string_view": "_deps/string_view"
     }
   }, 
@@ -18,6 +19,11 @@
     "commit": "9f6c86f23317ccc67429be779a6f17855c6e5a0b", 
     "type": "git", 
     "url": "https://github.com/nlohmann/json.git"
+  }, 
+  "_deps/openssl_vc14": {
+    "commit": "20be274a43ad891a2db15da384e1cc3e52bb9ef6", 
+    "type": "git", 
+    "url": "https://github.com/avakar/openssl_vc14.git"
   }, 
   "_deps/string_view": {
     "commit": "246c0989bcd14f4538323a3b41060272d8fa0cc0", 
