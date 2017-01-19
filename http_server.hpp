@@ -172,5 +172,6 @@ struct response
 response http_abort(uint16_t status_code);
 
 void http_server(istream & in, ostream & out, std::function<response(request &&)> const & fn);
+void http2_server(istream & in, ostream & out, std::function<response(request &&)> const & fn);
 
 #endif // HTTP_SERVER_HPP

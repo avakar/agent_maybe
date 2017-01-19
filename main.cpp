@@ -400,8 +400,12 @@ int main(int argc, char * argv[])
 		tcp_listen(port, [&a, &tls_key, &tls_cert](istream & in, ostream & out) {
 			std::shared_ptr<istream> in_tls;
 			std::shared_ptr<ostream> out_tls;
-			tls_server(in_tls, out_tls, in, out, tls_key, tls_cert);
-			http_server(*in_tls, *out_tls, std::ref(a));
+			std::string proto = tls_server(in_tls, out_tls, in, out, tls_key, tls_cert, { "h2", "http/1.1" });
+
+			if (proto != "h2")
+				http_server(*in_tls, *out_tls, std::ref(a));
+			else
+				http2_server(*in_tls, *out_tls, std::ref(a));
 		});
 	}
 }

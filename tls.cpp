@@ -112,12 +112,26 @@ struct ctx final
 	SSL_CTX * sslctx;
 	SSL * ssl;
 
-	ctx(istream & in, ostream & out, std::string const & key, std::string const & cert)
+	std::string proto;
+
+	ctx(istream & in, ostream & out, std::string const & key, std::string const & cert, std::vector<std::string_view> const & protos)
 		: rbio(&in), wbio(&out), sslctx(nullptr), ssl(nullptr)
 	{
+		std::vector<char> protos_bytes;
+		for (auto && proto : protos)
+		{
+			assert(proto.size() < 255);
+			protos_bytes.push_back((uint8_t)proto.size());
+			protos_bytes.insert(protos_bytes.end(), proto.begin(), proto.end());
+		}
+
 		sslctx = SSL_CTX_new(TLSv1_2_server_method());
 		if (!sslctx)
 			throw std::bad_alloc();
+
+		if (!protos_bytes.empty())
+			SSL_CTX_set_alpn_select_cb(sslctx, &alpn_select, &protos_bytes);
+
 
 		ssl = SSL_new(sslctx);
 		if (!ssl)
@@ -138,6 +152,13 @@ struct ctx final
 			SSL_CTX_free(sslctx);
 			throw std::runtime_error("accept");
 		}
+
+		unsigned char const * alpn;
+		unsigned int alpn_len;
+		SSL_get0_alpn_selected(ssl, &alpn, &alpn_len);
+
+		if (alpn)
+			proto.assign((char const *)alpn, alpn_len);
 	}
 
 	~ctx()
@@ -171,13 +192,24 @@ struct ctx final
 		}
 		return (size_t)r;
 	}
+
+private:
+	static int alpn_select(SSL *ssl, const unsigned char **out, unsigned char *outlen, const unsigned char *in, unsigned int inlen, void *arg)
+	{
+		auto * protos = static_cast<std::vector<char> *>(arg);
+		if (SSL_select_next_proto((unsigned char **)out, outlen, (unsigned char const *)protos->data(), protos->size(), in, inlen) == OPENSSL_NPN_NEGOTIATED)
+			return SSL_TLSEXT_ERR_OK;
+		return SSL_TLSEXT_ERR_NOACK;
+	}
 };
 
 }
 
-void tls_server(std::shared_ptr<istream> & in_tls, std::shared_ptr<ostream> & out_tls, istream & in, ostream & out, std::string const & key, std::string const & cert)
+std::string tls_server(std::shared_ptr<istream> & in_tls, std::shared_ptr<ostream> & out_tls, istream & in, ostream & out, std::string const & key, std::string const & cert, std::vector<std::string_view> const & protos)
 {
-	auto r = std::make_shared<ctx>(in, out, key, cert);
+	auto r = std::make_shared<ctx>(in, out, key, cert, protos);
 	in_tls = r;
 	out_tls = r;
+
+	return r->proto;
 }
