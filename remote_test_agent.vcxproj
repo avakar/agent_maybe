@@ -190,6 +190,7 @@
   <ItemGroup>
     <ClCompile Include="argparse.cpp" />
     <ClCompile Include="guid.cpp" />
+    <ClCompile Include="http2_server.cpp" />
     <ClCompile Include="http_server.cpp" />
     <ClCompile Include="known_paths.cpp" />
     <ClCompile Include="main.cpp" />

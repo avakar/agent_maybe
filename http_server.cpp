@@ -136,10 +136,6 @@ static bool load_num(uint64_t & num, std::string_view str)
 	return true;
 }
 
-void http2_server(istream & in, ostream & out, std::function<response(request &&)> const & fn)
-{
-}
-
 void http_server(istream & in, ostream & out, std::function<response(request &&)> const & fn)
 {
 	char header_buf[64 * 1024];

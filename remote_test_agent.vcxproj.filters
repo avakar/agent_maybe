@@ -34,5 +34,6 @@
     <ClCompile Include="guid.cpp" />
     <ClCompile Include="known_paths.cpp" />
     <ClCompile Include="tls.cpp" />
+    <ClCompile Include="http2_server.cpp" />
   </ItemGroup>
 </Project>
