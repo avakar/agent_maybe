@@ -9,6 +9,7 @@
 #include "format.hpp"
 #include "guid.hpp"
 #include "known_paths.hpp"
+#include "tls.hpp"
 
 #include <mutex>
 
@@ -374,18 +375,33 @@ int main(int argc, char * argv[])
 {
 	std::string image_name;
 	std::string stop_cmd;
+	std::string tls_key, tls_cert;
 	std::string workspace;
 	int port = 8080;
 
 	parse_argv(argc, argv, {
 		{ port, "--port", 'p' },
 		{ stop_cmd, "--stop-cmd" },
+		{ tls_key, "--tls-key" },
+		{ tls_cert, "--tls-cert" },
 		{ image_name, "image-name" },
 		{ workspace, "workspace" },
 	});
 
 	app a(workspace, image_name, stop_cmd);
-	tcp_listen(port, [&a](istream & in, ostream & out) {
-		http_server(in, out, std::ref(a));
-	});
+	if (tls_key.empty() || tls_cert.empty())
+	{
+		tcp_listen(port, [&a](istream & in, ostream & out) {
+			http_server(in, out, std::ref(a));
+		});
+	}
+	else
+	{
+		tcp_listen(port, [&a, &tls_key, &tls_cert](istream & in, ostream & out) {
+			std::shared_ptr<istream> in_tls;
+			std::shared_ptr<ostream> out_tls;
+			tls_server(in_tls, out_tls, in, out, tls_key, tls_cert);
+			http_server(*in_tls, *out_tls, std::ref(a));
+		});
+	}
 }

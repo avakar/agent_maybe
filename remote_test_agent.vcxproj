@@ -181,6 +181,7 @@
     <ClInclude Include="process.hpp" />
     <ClInclude Include="stream.hpp" />
     <ClInclude Include="tar.hpp" />
+    <ClInclude Include="tls.hpp" />
     <ClInclude Include="utf.hpp" />
     <ClInclude Include="utils.hpp" />
     <ClInclude Include="win32_error.hpp" />
@@ -194,6 +195,7 @@
     <ClCompile Include="main.cpp" />
     <ClCompile Include="stream.cpp" />
     <ClCompile Include="tar.cpp" />
+    <ClCompile Include="tls.cpp" />
     <ClCompile Include="utf.cpp" />
     <ClCompile Include="utils.cpp" />
     <ClCompile Include="win32_chan.cpp" />
