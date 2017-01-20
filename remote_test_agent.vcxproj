@@ -176,6 +176,8 @@
     <ClInclude Include="format.hpp" />
     <ClInclude Include="format_impl.hpp" />
     <ClInclude Include="guid.hpp" />
+    <ClInclude Include="hpack.hpp" />
+    <ClInclude Include="hpack_unhuff.hpp" />
     <ClInclude Include="http_server.hpp" />
     <ClInclude Include="known_paths.hpp" />
     <ClInclude Include="process.hpp" />
@@ -190,6 +192,7 @@
   <ItemGroup>
     <ClCompile Include="argparse.cpp" />
     <ClCompile Include="guid.cpp" />
+    <ClCompile Include="hpack.cpp" />
     <ClCompile Include="http2_server.cpp" />
     <ClCompile Include="http_server.cpp" />
     <ClCompile Include="known_paths.cpp" />

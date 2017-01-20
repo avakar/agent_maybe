@@ -1,4 +1,5 @@
 #include "http_server.hpp"
+#include "hpack.hpp"
 #include <thread>
 #include <atomic>
 #include <condition_variable>
@@ -89,6 +90,12 @@ T load_be(char const * buf, size_t len = sizeof(T))
 	return r;
 }
 
+template <typename T>
+void load_be(T & v, char const * buf, size_t len = sizeof(T))
+{
+	v = load_be<T>(buf, len);
+}
+
 template <typename F>
 struct on_exit_t
 {
@@ -129,12 +136,22 @@ struct http2_stream
 	}
 };
 
+struct http2_frame
+{
+	uint32_t payload_size;
+	frame_type type;
+	frame_flags flags;
+	uint32_t stream_id;
+};
+
 void http2_server(istream & in, ostream & out, std::function<response(request &&)> const & fn)
 {
 	static char const client_preface[] = "PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n";
 
 	std::map<uint32_t, http2_stream> streams;
 	uint32_t next_client_stream = 1;
+
+	hpack_decoder header_dec(4096);
 
 	endpoint_settings next_server_settings;
 	endpoint_settings client_settings;
@@ -221,105 +238,122 @@ void http2_server(istream & in, ostream & out, std::function<response(request &&
 		if (stream0_writer_error)
 			std::rethrow_exception(stream0_writer_error);
 
-		char header[9];
-		in.read_all(header, sizeof header);
+		char frame_header[9];
+		char payload[65536];
 
-		uint32_t payload_size = load_be<uint32_t>(header, 3);
-		frame_type type = static_cast<frame_type>(header[3]);
-		frame_flags flags = static_cast<frame_flags>(header[4]);
-		uint32_t stream_id = load_be<uint32_t>(&header[5]);
+		auto read_frame = [&](char * buf, size_t len) {
+			in.read_all(frame_header, sizeof frame_header);
+			http2_frame frame;
+			frame.payload_size = load_be<uint32_t>(frame_header, 3);
+			frame.type = static_cast<frame_type>(frame_header[3]);
+			frame.flags = static_cast<frame_flags>(frame_header[4]);
+			frame.stream_id = load_be<uint32_t>(&frame_header[5]);
+			frame.stream_id &= 0x7fffffff;
 
-		if (payload_size > client_settings.max_frame_size)
-			connection_error(error_code::frame_size_error);
+			if (frame.payload_size > len)
+				connection_error(error_code::frame_size_error);
 
-		stream_id &= 0x7fffffff;
+			in.read_all(payload, frame.payload_size);
+			return frame;
+		};
 
-		char payload[16384];
-		in.read_all(payload, payload_size);
+		http2_frame frame = read_frame(payload, client_settings.max_frame_size);
 
-		switch (type)
+		switch (frame.type)
 		{
 		case frame_type::headers:
-			if (stream_id == 0)
+			if (frame.stream_id == 0)
 				connection_error(error_code::protocol_error);
 
-			if ((stream_id & 1) == 0)
+			if ((frame.stream_id & 1) == 0)
 				connection_error(error_code::protocol_error);
 
-			if (stream_id < next_client_stream)
+			if (frame.stream_id < next_client_stream)
 				connection_error(error_code::protocol_error);
 
 			{
-				auto & stream = streams[stream_id];
-				next_client_stream = stream_id + 2;
+				auto & stream = streams[frame.stream_id];
+				next_client_stream = frame.stream_id + 2;
 
 				char * pl = payload;
-				if (flags & frame_flags::padded)
+				if (frame.flags & frame_flags::padded)
 				{
-					if (payload_size < 1)
+					if (frame.payload_size < 1)
 						connection_error(error_code::protocol_error);
 
 					uint8_t pad_length = (uint8_t)*pl++;
-					--payload_size;
+					--frame.payload_size;
 
-					if (payload_size < pad_length)
+					if (frame.payload_size < pad_length)
 						connection_error(error_code::protocol_error);
 
-					payload_size -= pad_length;
+					frame.payload_size -= pad_length;
 				}
 
-				if (flags & frame_flags::priority)
+				if (frame.flags & frame_flags::priority)
 				{
-					if (payload_size < 6)
+					if (frame.payload_size < 6)
 						connection_error(error_code::protocol_error);
 
 					pl += 6;
-					payload_size -= 6;
+					frame.payload_size -= 6;
 				}
 
-				stream.header_block.assign(pl, pl + payload_size);
-
-				if (flags & frame_flags::end_stream)
+				if (frame.flags & frame_flags::end_stream)
 					stream.open_from_client = false;
-				if (flags & frame_flags::end_headers)
-					stream.process_headers();
+
+				char * payload_end = pl + frame.payload_size;
+				uint32_t stream_id = frame.stream_id;
+				while ((frame.flags & frame_flags::end_headers) == 0)
+				{
+					size_t next_chunk = std::end(payload) - payload_end;
+					if (next_chunk > client_settings.max_frame_size)
+						next_chunk = client_settings.max_frame_size;
+					frame = read_frame(payload_end, next_chunk);
+					if (frame.type != frame_type::continuation || frame.stream_id != stream_id)
+						connection_error(error_code::protocol_error);
+					payload_end += frame.payload_size;
+				}
+
+				std::vector<header> headers;
+				header_dec.decode(headers, { pl, payload_end });
 			}
 			break;
 		case frame_type::continuation:
 			{
-				auto it = streams.find(stream_id);
+				auto it = streams.find(frame.stream_id);
 				if (it == streams.end())
 					connection_error(error_code::protocol_error);
 				auto && stream = it->second;
-				stream.header_block.append(payload, payload_size);
+				stream.header_block.append(payload, frame.payload_size);
 
-				if (flags & frame_flags::end_headers)
+				if (frame.flags & frame_flags::end_headers)
 					stream.process_headers();
 			}
 			break;
 		case frame_type::ping:
-			if (stream_id != 0)
+			if (frame.stream_id != 0)
 				connection_error(error_code::protocol_error);
-			if (payload_size != 8)
+			if (frame.payload_size != 8)
 				connection_error(error_code::frame_size_error);
 
-			if (flags & frame_flags::ack)
+			if (frame.flags & frame_flags::ack)
 			{
 			}
 			else
 			{
 				std::lock_guard<std::mutex> l(send_mutex);
-				pings.push_back({ payload, payload_size });
+				pings.push_back({ payload, frame.payload_size });
 				send_ready.notify_one();
 			}
 			break;
 		case frame_type::settings:
-			if (stream_id != 0)
+			if (frame.stream_id != 0)
 				connection_error(error_code::protocol_error);
 
-			if (flags & frame_flags::ack)
+			if (frame.flags & frame_flags::ack)
 			{
-				if (payload_size != 0)
+				if (frame.payload_size != 0)
 					connection_error(error_code::frame_size_error);
 				if (--client_settings_in_flight < 0)
 					connection_error(error_code::protocol_error);
@@ -329,7 +363,7 @@ void http2_server(istream & in, ostream & out, std::function<response(request &&
 				endpoint_settings new_server_settings = next_server_settings;
 
 				size_t idx = 0;
-				for (; idx < payload_size; idx += 6)
+				for (; idx < frame.payload_size; idx += 6)
 				{
 					auto id = static_cast<settings_ids>(load_be<uint16_t>(payload + idx));
 					uint32_t value = load_be<uint32_t>(payload + idx + 2);
@@ -363,7 +397,7 @@ void http2_server(istream & in, ostream & out, std::function<response(request &&
 					}
 				}
 
-				if (idx != payload_size)
+				if (idx != frame.payload_size)
 					connection_error(error_code::frame_size_error);
 
 				std::lock_guard<std::mutex> l(send_mutex);

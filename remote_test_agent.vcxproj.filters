@@ -17,6 +17,8 @@
     <ClInclude Include="format_impl.hpp" />
     <ClInclude Include="known_paths.hpp" />
     <ClInclude Include="tls.hpp" />
+    <ClInclude Include="hpack.hpp" />
+    <ClInclude Include="hpack_unhuff.hpp" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp" />
@@ -35,5 +37,6 @@
     <ClCompile Include="known_paths.cpp" />
     <ClCompile Include="tls.cpp" />
     <ClCompile Include="http2_server.cpp" />
+    <ClCompile Include="hpack.cpp" />
   </ItemGroup>
 </Project>

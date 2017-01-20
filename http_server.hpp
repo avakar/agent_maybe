@@ -34,6 +34,16 @@ struct header
 {
 	std::string name;
 	std::string value;
+
+	header(header_view hv)
+		: name(hv.name), value(hv.value)
+	{
+	}
+
+	header(std::string name, std::string value)
+		: name(std::move(name)), value(std::move(value))
+	{
+	}
 };
 
 using header_list = std::vector<header_view>;
