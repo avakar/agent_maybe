@@ -3,6 +3,7 @@
     "dependencies": {
       "cpp_zlib": "_deps/cpp_zlib", 
       "json": "_deps/json", 
+      "libhttp": "_deps/libhttp", 
       "openssl_vc14": "_deps/openssl_vc14", 
       "string_view": "_deps/string_view"
     }
@@ -22,6 +23,9 @@
   }, 
   "_deps/libhttp": {
     "commit": "9b4fa1e1674a484f8dc279631623e2258a81ca1d", 
+    "dependencies": {
+      "string_view": "_deps/string_view"
+    }, 
     "type": "git", 
     "url": "https://github.com/avakar/libhttp.git"
   }, 
