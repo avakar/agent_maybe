@@ -7,8 +7,6 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "remote_test_agent", "remote
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "zlib", "_deps\cpp_zlib\zlib.vcxproj", "{511FC7BD-EF84-49A1-B8CB-25E5F4959B15}"
 EndProject
-Project("{888888A0-9F3D-457C-B088-3A5042F75D52}") = "unhuff", "unhuff.pyproj", "{F39D7825-40F3-4CD8-9DA9-6C80F47277AF}"
-EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libhttp", "_deps\libhttp\libhttp.vcxproj", "{E7E2A2A2-8ABA-4976-92EB-CC410B97B991}"
 EndProject
 Global
@@ -41,12 +39,6 @@ Global
 		{511FC7BD-EF84-49A1-B8CB-25E5F4959B15}.Release|x64.Build.0 = Release|x64
 		{511FC7BD-EF84-49A1-B8CB-25E5F4959B15}.Release|x86.ActiveCfg = Release|Win32
 		{511FC7BD-EF84-49A1-B8CB-25E5F4959B15}.Release|x86.Build.0 = Release|Win32
-		{F39D7825-40F3-4CD8-9DA9-6C80F47277AF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{F39D7825-40F3-4CD8-9DA9-6C80F47277AF}.Debug|x64.ActiveCfg = Debug|Any CPU
-		{F39D7825-40F3-4CD8-9DA9-6C80F47277AF}.Debug|x86.ActiveCfg = Debug|Any CPU
-		{F39D7825-40F3-4CD8-9DA9-6C80F47277AF}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{F39D7825-40F3-4CD8-9DA9-6C80F47277AF}.Release|x64.ActiveCfg = Release|Any CPU
-		{F39D7825-40F3-4CD8-9DA9-6C80F47277AF}.Release|x86.ActiveCfg = Release|Any CPU
 		{E7E2A2A2-8ABA-4976-92EB-CC410B97B991}.Debug|Any CPU.ActiveCfg = Debug|Win32
 		{E7E2A2A2-8ABA-4976-92EB-CC410B97B991}.Debug|x64.ActiveCfg = Debug|x64
 		{E7E2A2A2-8ABA-4976-92EB-CC410B97B991}.Debug|x64.Build.0 = Debug|x64
