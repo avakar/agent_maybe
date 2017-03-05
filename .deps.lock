@@ -20,6 +20,11 @@
     "type": "git", 
     "url": "https://github.com/nlohmann/json.git"
   }, 
+  "_deps/libhttp": {
+    "commit": "9b4fa1e1674a484f8dc279631623e2258a81ca1d", 
+    "type": "git", 
+    "url": "https://github.com/avakar/libhttp.git"
+  }, 
   "_deps/openssl_vc14": {
     "commit": "20be274a43ad891a2db15da384e1cc3e52bb9ef6", 
     "type": "git", 

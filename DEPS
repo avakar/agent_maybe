@@ -6,6 +6,9 @@ dependencies:
         type: 'git'
         repo: 'https://github.com/nlohmann/json.git'
         version: '2.x'
+    libhttp:
+        type: 'git'
+        repo: 'https://github.com/avakar/libhttp.git'
     openssl_vc14:
         type: 'git'
         repo: 'https://github.com/avakar/openssl_vc14.git'
