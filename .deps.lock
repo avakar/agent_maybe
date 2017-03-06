@@ -5,6 +5,7 @@
       "json": "_deps/json", 
       "libhttp": "_deps/libhttp", 
       "openssl_vc14": "_deps/openssl_vc14", 
+      "string_utils": "_deps/string_utils", 
       "string_view": "_deps/string_view"
     }
   }, 
@@ -33,6 +34,14 @@
     "commit": "20be274a43ad891a2db15da384e1cc3e52bb9ef6", 
     "type": "git", 
     "url": "https://github.com/avakar/openssl_vc14.git"
+  }, 
+  "_deps/string_utils": {
+    "commit": "2ffe90bc35632d7126daf13e8e18864560ddff8a", 
+    "dependencies": {
+      "string_view": "_deps/string_view"
+    }, 
+    "type": "git", 
+    "url": "https://github.com/avakar/string_utils.git"
   }, 
   "_deps/string_view": {
     "commit": "246c0989bcd14f4538323a3b41060272d8fa0cc0", 

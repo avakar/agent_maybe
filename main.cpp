@@ -5,13 +5,14 @@
 #include "tar.hpp"
 #include "argparse.hpp"
 #include "process.hpp"
-#include "utils.hpp"
 #include "format.hpp"
 #include "guid.hpp"
 #include "known_paths.hpp"
 #include "tls.hpp"
 
 #include <mutex>
+
+#include <string_utils.hpp>
 
 #include <json.hpp>
 using nlohmann::json;
