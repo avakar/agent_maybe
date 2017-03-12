@@ -234,7 +234,7 @@ struct app
 		{
 			if (!e.is_string())
 				return 400;
-			append_cmdline(cmdline, e);
+			append_cmdline(cmdline, e.get<std::string>());
 			pi.cmd.push_back(e);
 		}
 
