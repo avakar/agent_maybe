@@ -10,7 +10,7 @@
     }
   }, 
   "_deps/cpp_zlib": {
-    "commit": "758b7413ca5706e89fc3749b69c1fd62a8d12030", 
+    "commit": "2345d2b6c05ad4b86f27d8e3948009643887ea48", 
     "dependencies": {
       "zlib": "_deps/zlib"
     }, 
@@ -18,12 +18,12 @@
     "url": "https://github.com/avakar/cpp_zlib.git"
   }, 
   "_deps/json": {
-    "commit": "9f6c86f23317ccc67429be779a6f17855c6e5a0b", 
+    "commit": "c0d511ea500e698061a4b288bd77ce43bd76fa70", 
     "type": "git", 
     "url": "https://github.com/nlohmann/json.git"
   }, 
   "_deps/libhttp": {
-    "commit": "9b4fa1e1674a484f8dc279631623e2258a81ca1d", 
+    "commit": "bd0fe201f2ca3b41d355941a59d442a4e9b37445", 
     "dependencies": {
       "string_view": "_deps/string_view"
     }, 
@@ -36,7 +36,7 @@
     "url": "https://github.com/avakar/openssl_vc14.git"
   }, 
   "_deps/string_utils": {
-    "commit": "2ffe90bc35632d7126daf13e8e18864560ddff8a", 
+    "commit": "3ce1a559530e3cc85740d6fe890acc43b78976e7", 
     "dependencies": {
       "string_view": "_deps/string_view"
     }, 
@@ -44,12 +44,12 @@
     "url": "https://github.com/avakar/string_utils.git"
   }, 
   "_deps/string_view": {
-    "commit": "246c0989bcd14f4538323a3b41060272d8fa0cc0", 
+    "commit": "2307c79c149d6075c23bb7d9db300bb0ecc75dc6", 
     "type": "git", 
     "url": "https://github.com/avakar/string_view.git"
   }, 
   "_deps/zlib": {
-    "commit": "4a090adef8c773087ec8916ad3c2236ef560df27", 
+    "commit": "cacf7f1d4e3d44d871b605da3b647f07d718623f", 
     "type": "git", 
     "url": "https://github.com/madler/zlib.git"
   }

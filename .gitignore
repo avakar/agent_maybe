@@ -1,8 +1,7 @@
 .vs/
 _deps/
+/_build*/
 Debug/
 Release/
 deps.props
-**.VC.opendb
-**.sdf
-**.vcxproj.user
+deps.cmake
