@@ -23,12 +23,21 @@
     "url": "https://github.com/nlohmann/json.git"
   }, 
   "_deps/libhttp": {
-    "commit": "bd0fe201f2ca3b41d355941a59d442a4e9b37445", 
+    "commit": "cbecdb031ce23b1e5d46132169737550b9d76d2b", 
     "dependencies": {
+      "libstream": "_deps/libstream", 
       "string_view": "_deps/string_view"
     }, 
     "type": "git", 
     "url": "https://github.com/avakar/libhttp.git"
+  }, 
+  "_deps/libstream": {
+    "commit": "d47cc984724524eeaa85b2b638bbd623da315ddc", 
+    "dependencies": {
+      "string_view": "_deps/string_view"
+    }, 
+    "type": "git", 
+    "url": "git@github.com:avakar/libstream.git"
   }, 
   "_deps/openssl_vc14": {
     "commit": "20be274a43ad891a2db15da384e1cc3e52bb9ef6", 

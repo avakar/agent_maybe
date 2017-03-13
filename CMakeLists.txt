@@ -14,7 +14,6 @@ add_executable(agent_maybe
     tar.hpp tar.cpp
     tls.hpp tls.cpp
     utf.hpp utf.cpp
-    win32_socket.hpp win32_socket.cpp
     win32_error.hpp win32_error.cpp)
 
 if(WIN32)
