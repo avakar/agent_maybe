@@ -23,9 +23,10 @@
     "url": "https://github.com/nlohmann/json.git"
   }, 
   "_deps/libhttp": {
-    "commit": "cbecdb031ce23b1e5d46132169737550b9d76d2b", 
+    "commit": "6f63b1bf65bcfafbc4673561778279ca5e3d3646", 
     "dependencies": {
       "libstream": "_deps/libstream", 
+      "string_utils": "_deps/string_utils", 
       "string_view": "_deps/string_view"
     }, 
     "type": "git", 
