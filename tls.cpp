@@ -1,8 +1,26 @@
 #include "tls.hpp"
-#include <internal/bio.h>
 #include <openssl/bio.h>
 #include <openssl/ssl.h>
 #include <exception>
+
+#if OPENSSL_VERSION_NUMBER >= 0x10100000
+#include <internal/bio.h>
+#else
+static void BIO_set_data(BIO * b, void * p)
+{
+	b->ptr = p;
+}
+
+static void * BIO_get_data(BIO * b)
+{
+	return b->ptr;
+}
+
+static void BIO_set_init(BIO * b, int init)
+{
+	b->init = init;
+}
+#endif
 
 namespace {
 
@@ -22,7 +40,7 @@ struct stream_bio final
 			&ctrl,
 		};
 
-		bio_ = BIO_new(&meth);
+		bio_ = BIO_new((BIO_METHOD *)&meth);
 		if (bio_ == nullptr)
 			throw std::bad_alloc();
 

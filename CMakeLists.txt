@@ -29,6 +29,7 @@ add_executable(agent_maybe
     )
 
 if(WIN32)
+    target_include_directories(agent_maybe PRIVATE ${CMAKE_SOURCE_DIR}/${dep_openssl_vc14}/include)
     target_link_libraries(agent_maybe ws2_32)
 
     if( CMAKE_SIZEOF_VOID_P EQUAL 8 )
@@ -46,6 +47,5 @@ else()
     target_link_libraries(agent_maybe ${OPENSSL_LIBRARIES})
 endif()
 
-target_include_directories(agent_maybe PRIVATE ${CMAKE_SOURCE_DIR}/${dep_openssl_vc14}/include)
 target_link_libraries(agent_maybe nlohmann_json libhttp string_utils string_view zlib_stream)
 set_property(TARGET agent_maybe PROPERTY CXX_STANDARD 14)
