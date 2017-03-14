@@ -1,4 +1,7 @@
 #include "known_paths.hpp"
+
+#ifdef WIN32
+
 #include "utf.hpp"
 #include <windows.h>
 #include <shlobj.h>
@@ -32,3 +35,26 @@ std::string get_appdata_dir()
 	task_mem path_tm(path);
 	return to_utf8(path);
 }
+
+#else
+
+#include <stdlib.h>
+#include <sys/types.h>
+#include <unistd.h>
+#include <pwd.h>
+
+std::string get_appdata_dir()
+{
+	char * home = getenv("HOME");
+	if (!home)
+	{
+		passwd * pw = getpwuid(getuid());
+		home = pw->pw_dir;
+	}
+
+	std::string r = home;
+	r += "/.local/share";
+	return r;
+}
+
+#endif

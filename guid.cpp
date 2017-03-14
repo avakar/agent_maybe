@@ -1,4 +1,7 @@
 #include "guid.hpp"
+
+#ifdef WIN32
+
 #include <system_error>
 #include <windows.h>
 
@@ -17,3 +20,25 @@ std::string new_uuid()
 	
 	return r;
 }
+
+#else
+
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <unistd.h>
+
+std::string new_uuid()
+{
+	int fd = open("/proc/sys/kernel/random/uuid", O_RDONLY);
+
+	char r[36];
+	read(fd, r, sizeof r);
+
+	close(fd);
+
+	return std::string(r, sizeof r);
+}
+
+
+#endif

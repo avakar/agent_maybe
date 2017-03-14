@@ -2,6 +2,8 @@
 #define PROCESS_HPP
 
 #include <string_view>
+#include <vector>
+#include <string>
 
 struct process
 {
@@ -12,6 +14,10 @@ struct process
 
 	void close();
 
+	template <typename Range>
+	void start(Range const & r);
+
+	void start(std::vector<std::string> cmd);
 	void start(std::string_view cmd);
 
 	bool poll();
@@ -26,15 +32,13 @@ private:
 
 int32_t run_process(std::string_view cmd);
 
-void append_cmdline(std::string & cmdline, std::string_view arg);
-
 template <typename Range>
-std::string make_cmdline(Range const & r)
+void process::start(Range const & r)
 {
-	std::string cmdline;
-	for (auto && e : r)
-		append_cmdline(cmdline, e);
-	return cmdline;
+	std::vector<std::string> args;
+	for (auto && e: r)
+		args.push_back(e);
+	this->start(std::move(args));
 }
 
 #endif // PROCESS_HPP

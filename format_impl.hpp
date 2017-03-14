@@ -1,4 +1,5 @@
 #include <type_traits>
+#include <memory>
 
 inline void format_append(std::string & r, std::string_view fmt)
 {

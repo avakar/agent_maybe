@@ -1,4 +1,4 @@
-#include "win32_socket.hpp"
+#include <socket.hpp>
 #include "http_server.hpp"
 #include "file.hpp"
 #include "chan.hpp"
@@ -13,6 +13,8 @@
 #include <mutex>
 
 #include <string_utils.hpp>
+
+#include <memory>
 
 #include <json.hpp>
 using nlohmann::json;
@@ -229,13 +231,11 @@ struct app
 
 		proc_info pi;
 
-		std::string cmdline;
 		for (auto && e : *cmd)
 		{
 			if (!e.is_string())
 				return 400;
-			append_cmdline(cmdline, e.get<std::string>());
-			pi.cmd.push_back(e);
+			pi.cmd.push_back(e.get<std::string>());
 		}
 
 		pi.pure = pure->get<bool>();
@@ -245,7 +245,7 @@ struct app
 		processes_.push_back(std::move(pi));
 
 		auto && proc = processes_.back();
-		proc.proc->start(cmdline);
+		proc.proc->start(proc.cmd);
 
 		if (!proc.pure)
 			status_ = status_t::unpure;
